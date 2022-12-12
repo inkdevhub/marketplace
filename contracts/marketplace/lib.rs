@@ -9,14 +9,16 @@ pub mod marketplace {
         traits::Storage,
     };
     use pallet_marketplace:: {
-      traits::marketplace::*
+      traits::marketplace::*,
+      impls::marketplace::*
     };
 
     // MarketplaceContract contract storage
     #[ink(storage)]
     #[derive(Default, SpreadAllocate, Storage)]
     pub struct MarketplaceContract {
-        test: u32,
+        #[storage_field]
+        marketplace: types::Data,
     }
 
     /// Event emitted when a NFT contract registration occurs.
@@ -33,9 +35,28 @@ pub mod marketplace {
     impl MarketplaceContract {
         #[ink(constructor)]
         pub fn new() -> Self {
-            Self { test: 0 }
+            ink_lang::codegen::initialize_contract(|instance: &mut MarketplaceContract| {
+                // TODO do propper initialization
+            })
         }
     }
 
     impl MarketplaceSale for MarketplaceContract {}
 }
+
+// ***************************** Tests *******************************
+#[cfg(test)]
+mod tests {
+    use ink_lang as ink;
+    use crate::marketplace::MarketplaceContract;
+
+    #[ink::test]
+    fn new_works() {
+        let marketplace = init_cotract();
+    }
+
+    fn init_cotract() -> MarketplaceContract {
+        MarketplaceContract::new()
+    }
+}
+

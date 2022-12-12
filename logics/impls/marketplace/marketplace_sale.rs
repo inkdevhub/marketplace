@@ -19,17 +19,19 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+use crate::impls::marketplace::types::{Data, MarketplaceError};
 pub use crate::traits::marketplace::MarketplaceSale;
+use openbrush::traits::{AccountId, Balance, Storage};
 
-use openbrush::{
-  contracts::psp34::PSP34Error, //TODO Find suitable error
-  traits::{AccountId, Balance},
-};
-
-//TODO add conditions for T
-impl<T> MarketplaceSale for T {
-    default fn add_nft_contract(&mut self, contract_address: AccountId) -> Result<(), PSP34Error> {
-      Ok(())
+impl<T> MarketplaceSale for T
+where
+    T: Storage<Data>,
+{
+    default fn add_nft_contract(
+        &mut self,
+        contract_address: AccountId,
+    ) -> Result<(), MarketplaceError> {
+        Ok(())
     }
 
     default fn add_market_data(
@@ -37,11 +39,15 @@ impl<T> MarketplaceSale for T {
         contract_address: AccountId,
         token_id: u64,
         price: Balance,
-    ) -> Result<(), PSP34Error> {
-      Ok(())
+    ) -> Result<(), MarketplaceError> {
+        Ok(())
     }
 
-    default fn buy_item(&mut self, contract_address: AccountId, token_id: u64) -> Result<(), PSP34Error> {
-      Ok(())
+    default fn buy_item(
+        &mut self,
+        contract_address: AccountId,
+        token_id: u64,
+    ) -> Result<(), MarketplaceError> {
+        Ok(())
     }
 }
