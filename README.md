@@ -1,5 +1,5 @@
 # NFT Marketplace project
-TODO description
+This contract is an example for the NFT marketplace implementation.
 
 ### License
 Apache 2.0
@@ -18,19 +18,19 @@ cargo contract build
 cargo test
 ```
 ##### 💫 Deploy
-First start your local node. Recommended [swanky-node](https://github.com/AstarNetwork/swanky-node) v0.13.0
+First start your local node. Recommended [swanky-node](https://github.com/AstarNetwork/swanky-node) v1.0.0
 ```sh
 cargo ??
 ```
 - or deploy polkadot JS. Instructions on [Astar docs](https://docs.astar.network/docs/wasm/sc-dev/polkadotjs-ui)
 
 ##### 💫 Run integration test
-First start your local node. Recommended [swanky-node](https://github.com/AstarNetwork/swanky-node) v0.13.0
+First start your local node. Recommended [swanky-node](https://github.com/AstarNetwork/swanky-node) v1.0.0
 
 ```sh
 yarn
 yarn compile
-yarn test:typechain
+yarn test
 ```
 
 ##### 💫 Deployed contracts
