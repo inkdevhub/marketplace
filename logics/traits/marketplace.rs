@@ -29,7 +29,7 @@ pub trait MarketplaceSale {
 
     /// Buy NFT item from the marketplace.
     #[ink(message, payable)]
-    fn buy(&mut self, contract_address: AccountId, token_id: u64) -> Result<(), MarketplaceError>;
+    fn buy(&mut self, contract_address: AccountId, token_id: Id) -> Result<(), MarketplaceError>;
 
     /// Registers NFT contract to the marketplace.
     #[ink(message)]
@@ -45,7 +45,7 @@ pub trait MarketplaceSale {
 
     /// Checks if NFT token is listed on the marketplace.
     #[ink(message)]
-    fn is_listed(&self, contract_address: AccountId, token_id: Id) -> Option<u16>;
+    fn get_price(&self, contract_address: AccountId, token_id: Id) -> Option<Balance>;
 
     #[ink(message)]
     fn set_contract_metadata(&mut self, ipfs: String) -> Result<(), MarketplaceError>;

@@ -19,6 +19,8 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+use core::default;
+
 use crate::impls::marketplace::types::{
     Data,
     MarketplaceError,
@@ -39,6 +41,21 @@ use openbrush::{
     },
 };
 
+pub trait Internal {
+    /// Checks if contract caller is an token owner
+    fn check_owner(
+        &self,
+        contract_address: AccountId,
+        token_id: Id,
+    ) -> Result<(), MarketplaceError>;
+
+    fn check_value(
+        &self,
+        transfered_value: Balance,
+        price: Balance,
+    ) -> Result<(), MarketplaceError>;
+}
+
 impl<T> MarketplaceSale for T
 where
     T: Storage<Data> + Storage<ownable::Data>,
@@ -53,16 +70,10 @@ where
         token_id: Id,
         price: Balance,
     ) -> Result<(), MarketplaceError> {
-        let caller = Self::env().caller();
-        if let Some(token_owner) = PSP34Ref::owner_of(&contract_address, token_id.clone()) {
-            if caller != token_owner {
-                return Err(MarketplaceError::NotOwner)
-            }
-        } else {
-            return Err(MarketplaceError::ItemNotFound)
-        }
-        
-        self.data::<Data>().items.insert(&(contract_address, token_id), &price);
+        self.check_owner(contract_address, token_id.clone())?;
+        self.data::<Data>()
+            .items
+            .insert(&(contract_address, token_id), &price);
         Ok(())
     }
 
@@ -71,14 +82,28 @@ where
         contract_address: AccountId,
         token_id: Id,
     ) -> Result<(), MarketplaceError> {
+        self.check_owner(contract_address, token_id.clone())?;
+
+        // TODO check what happens if key is not in collection.
+        self.data::<Data>()
+            .items
+            .remove(&(contract_address, token_id));
         Ok(())
     }
 
     default fn buy(
         &mut self,
         contract_address: AccountId,
-        token_id: u64,
+        token_id: Id,
     ) -> Result<(), MarketplaceError> {
+        if let Some(price) = self.data::<Data>().items.get(&(contract_address, token_id)) {
+            let value = Self::env().transferred_value();
+            self.check_value(value, price)?;
+            // TODO calculate, fee, royalty
+        } else {
+            return Err(MarketplaceError::ItemNotListedForSale)
+        }
+
         Ok(())
     }
 
@@ -98,28 +123,53 @@ where
         self.data::<Data>().fee
     }
 
-    default fn is_listed(&self, contract_address: AccountId, token_id: Id) -> Option<u16> {
-        None
+    default fn get_price(&self, contract_address: AccountId, token_id: Id) -> Option<Balance> {
+        self.data::<Data>().items.get(&(contract_address, token_id))
     }
 
     default fn set_contract_metadata(&mut self, ipfs: String) -> Result<(), MarketplaceError> {
         Ok(())
     }
+}
 
-    // fn check_owner(
-    //     &mut self,
-    //     contract_address: AccountId,
-    //     token_id: Id,
-    // ) -> Result<(), MarketplaceError> {
-    //     let caller = Self::env().caller();
-    //     if let Some(token_owner) = PSP34Ref::owner_of(&contract_address, token_id.clone()) {
-    //         if caller != token_owner {
-    //             return Err(MarketplaceError::NotOwner)
-    //         }
-    //     } else {
-    //         return Err(MarketplaceError::ItemNotFound)
-    //     }
-        
-    //     Ok(())
-    // }
+impl<T> Internal for T
+where
+    T: Storage<Data>,
+{
+    default fn check_owner(
+        &self,
+        contract_address: AccountId,
+        token_id: Id,
+    ) -> Result<(), MarketplaceError> {
+        if !self
+            .data::<Data>()
+            .registered_contracts
+            .contains(&contract_address)
+        {
+            return Err(MarketplaceError::NotRegisteredContract)
+        }
+
+        let caller = Self::env().caller();
+        if let Some(token_owner) = PSP34Ref::owner_of(&contract_address, token_id.clone()) {
+            if caller != token_owner {
+                return Err(MarketplaceError::NotOwner)
+            }
+        } else {
+            return Err(MarketplaceError::ItemNotFound)
+        }
+
+        Ok(())
+    }
+
+    default fn check_value(
+        &self,
+        transfered_value: Balance,
+        price: Balance,
+    ) -> Result<(), MarketplaceError> {
+        if transfered_value < price {
+            return Err(MarketplaceError::BadBuyValue)
+        }
+
+        Ok(())
+    }
 }
