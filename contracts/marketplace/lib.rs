@@ -3,6 +3,10 @@
 
 #[openbrush::contract]
 pub mod marketplace {
+    use ink_lang::codegen::{
+        EmitEvent,
+        Env,
+    };
     use ink_storage::traits::SpreadAllocate;
     use openbrush::{
         contracts::{ownable::*, psp34::PSP34Error},
@@ -47,9 +51,12 @@ pub mod marketplace {
 // ***************************** Tests *******************************
 #[cfg(test)]
 mod tests {
-    use crate::marketplace::MarketplaceContract;
-    use pallet_marketplace::traits::marketplace::*;
+    use super::*;
     use ink_lang as ink;
+    use crate::marketplace::MarketplaceContract;
+    use ink_env::{test, Environment};
+    // use openbrush::traits::AccountId;
+    use pallet_marketplace::traits::marketplace::*;
 
     #[ink::test]
     fn new_works() {
@@ -57,7 +64,25 @@ mod tests {
         assert_eq!(marketplace.get_marketplace_fee(), 100);
     }
 
+    #[ink::test]
+    fn set_marketplace_fee_works() {
+        let accounts = default_accounts();
+        set_sender(accounts.alice);
+        let mut marketplace = init_contract();
+
+        assert!(marketplace.set_marketplace_fee(120).is_ok());
+        assert_eq!(marketplace.get_marketplace_fee(), 120);
+    }
+
     fn init_contract() -> MarketplaceContract {
         MarketplaceContract::new()
+    }
+
+    fn default_accounts() -> test::DefaultAccounts<ink_env::DefaultEnvironment> {
+        test::default_accounts::<Environment>()
+    }
+
+    fn set_sender(sender: AccountId) {
+        ink_env::test::set_caller::<Environment>(sender);
     }
 }

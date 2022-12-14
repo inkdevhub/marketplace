@@ -24,11 +24,13 @@ pub use crate::traits::marketplace::MarketplaceSale;
 use ink_env::Hash;
 use openbrush::contracts::ownable::*;
 use openbrush::contracts::psp34::Id;
+use openbrush::modifiers;
 use openbrush::traits::{AccountId, Balance, Storage, String};
 
 impl<T> MarketplaceSale for T
 where
-    T: Storage<Data> + Storage<ownable::Data>,
+    T: Storage<Data>
+        + Storage<ownable::Data>,
 {
     default fn factory(&mut self, hash: Hash, ipfs: String) -> Result<(), MarketplaceError> {
         Ok(())
@@ -63,12 +65,15 @@ where
         Ok(())
     }
 
+    #[modifiers(only_owner)]
     default fn set_marketplace_fee(&mut self, fee: u16) -> Result<(), MarketplaceError> {
+        // TODO check max fee
+        self.data::<Data>().fee = fee;
         Ok(())
     }
 
     default fn get_marketplace_fee(&self) -> u16 {
-        100
+        self.data::<Data>().fee
     }
 
     default fn is_listed(&self, contract_address: AccountId, token_id: Id) -> Option<u16> {
