@@ -19,18 +19,29 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-use crate::impls::marketplace::types::{Data, MarketplaceError};
+use crate::impls::marketplace::types::{
+    Data,
+    MarketplaceError,
+};
 pub use crate::traits::marketplace::MarketplaceSale;
 use ink_env::Hash;
-use openbrush::contracts::ownable::*;
-use openbrush::contracts::psp34::Id;
-use openbrush::modifiers;
-use openbrush::traits::{AccountId, Balance, Storage, String};
+use openbrush::{
+    contracts::{
+        ownable::*,
+        psp34::*,
+    },
+    modifiers,
+    traits::{
+        AccountId,
+        Balance,
+        Storage,
+        String,
+    },
+};
 
 impl<T> MarketplaceSale for T
 where
-    T: Storage<Data>
-        + Storage<ownable::Data>,
+    T: Storage<Data> + Storage<ownable::Data>,
 {
     default fn factory(&mut self, hash: Hash, ipfs: String) -> Result<(), MarketplaceError> {
         Ok(())
@@ -42,6 +53,16 @@ where
         token_id: Id,
         price: Balance,
     ) -> Result<(), MarketplaceError> {
+        let caller = Self::env().caller();
+        if let Some(token_owner) = PSP34Ref::owner_of(&contract_address, token_id.clone()) {
+            if caller != token_owner {
+                return Err(MarketplaceError::NotOwner)
+            }
+        } else {
+            return Err(MarketplaceError::ItemNotFound)
+        }
+        
+        self.data::<Data>().items.insert(&(contract_address, token_id), &price);
         Ok(())
     }
 
@@ -84,4 +105,21 @@ where
     default fn set_contract_metadata(&mut self, ipfs: String) -> Result<(), MarketplaceError> {
         Ok(())
     }
+
+    // fn check_owner(
+    //     &mut self,
+    //     contract_address: AccountId,
+    //     token_id: Id,
+    // ) -> Result<(), MarketplaceError> {
+    //     let caller = Self::env().caller();
+    //     if let Some(token_owner) = PSP34Ref::owner_of(&contract_address, token_id.clone()) {
+    //         if caller != token_owner {
+    //             return Err(MarketplaceError::NotOwner)
+    //         }
+    //     } else {
+    //         return Err(MarketplaceError::ItemNotFound)
+    //     }
+        
+    //     Ok(())
+    // }
 }

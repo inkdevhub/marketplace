@@ -10,8 +10,8 @@ pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 #[derive(Default, Debug)]
 #[openbrush::upgradeable_storage(STORAGE_KEY)]
 pub struct Data {
-    pub registered_contracts: Vec<AccountId>,
-    pub items: Mapping<(AccountId, Id), Item>,
+    pub registered_contracts: Mapping<AccountId, RegisteredCollection>,
+    pub items: Mapping<(AccountId, Id), Balance>,
     pub fee: u16,
 }
 
@@ -19,15 +19,16 @@ pub struct Data {
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 pub enum MarketplaceError {
     OwnableError(OwnableError),
-    SomethingIsWrong,
+    NotOwner,
+    ItemNotFound
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Encode, Decode)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Encode, Decode)]
 #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
-pub struct Item {
+pub struct RegisteredCollection {
     pub owner: AccountId,
-    pub contract: AccountId,
-    pub price: Balance,
+    pub metadata: String,
+    pub royalty: u16,
 }
 
 impl From<OwnableError> for MarketplaceError {
