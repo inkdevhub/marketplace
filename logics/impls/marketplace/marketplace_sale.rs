@@ -21,33 +21,57 @@
 
 use crate::impls::marketplace::types::{Data, MarketplaceError};
 pub use crate::traits::marketplace::MarketplaceSale;
-use openbrush::traits::{AccountId, Balance, Storage};
+use ink_env::Hash;
+use openbrush::contracts::ownable::*;
+use openbrush::contracts::psp34::Id;
+use openbrush::traits::{AccountId, Balance, Storage, String};
 
 impl<T> MarketplaceSale for T
 where
-    T: Storage<Data>,
+    T: Storage<Data> + Storage<ownable::Data>,
 {
-    default fn add_nft_contract(
-        &mut self,
-        contract_address: AccountId,
-    ) -> Result<(), MarketplaceError> {
+    default fn factory(&mut self, hash: Hash, ipfs: String) -> Result<(), MarketplaceError> {
         Ok(())
     }
 
-    default fn add_market_data(
+    default fn list(
         &mut self,
         contract_address: AccountId,
-        token_id: u64,
+        token_id: Id,
         price: Balance,
     ) -> Result<(), MarketplaceError> {
         Ok(())
     }
 
-    default fn buy_item(
+    default fn unlist(
+        &mut self,
+        contract_address: AccountId,
+        token_id: Id,
+    ) -> Result<(), MarketplaceError> {
+        Ok(())
+    }
+
+    default fn buy(
         &mut self,
         contract_address: AccountId,
         token_id: u64,
     ) -> Result<(), MarketplaceError> {
         Ok(())
+    }
+
+    default fn register(&mut self, contract_address: AccountId) -> Result<(), MarketplaceError> {
+        Ok(())
+    }
+
+    default fn set_marketplace_fee(&mut self, fee: u16) -> Result<(), MarketplaceError> {
+        Ok(())
+    }
+
+    default fn get_marketplace_fee(&self) -> u16 {
+        100
+    }
+
+    default fn is_listed(&self, contract_address: AccountId, token_id: Id) -> Option<u16> {
+        None
     }
 }

@@ -10,6 +10,7 @@ pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 pub struct Data {
     pub registered_contracts: Vec<AccountId>,
     pub items: Mapping<(AccountId, u128), Item>,
+    pub fee: u16,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
