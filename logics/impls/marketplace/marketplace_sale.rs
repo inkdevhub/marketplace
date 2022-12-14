@@ -65,7 +65,8 @@ where
         Ok(())
     }
 
-    #[modifiers(only_owner)]
+    // TODO return owner check
+    // #[modifiers(only_owner)]
     default fn set_marketplace_fee(&mut self, fee: u16) -> Result<(), MarketplaceError> {
         // TODO check max fee
         self.data::<Data>().fee = fee;

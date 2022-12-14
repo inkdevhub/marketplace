@@ -52,6 +52,15 @@ describe('Marketplace tests', () => {
     expect((await contract.query.getMarketplaceFee()).value).to.equal(100);
   })
 
+  it('setMarketplaceFee works', async () => {
+    await setup();
+    let { gasRequired } = await contract.query.setMarketplaceFee(120);
+
+    let result = await contract.tx.setMarketplaceFee(120, { gasLimit: gasRequired });
+    console.log(result);
+    expect((await contract.query.getMarketplaceFee()).value).to.equal(120);
+  })
+
 })
 
 // Helper function to parse Events

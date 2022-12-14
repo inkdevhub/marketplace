@@ -9,10 +9,16 @@ pub mod marketplace {
     };
     use ink_storage::traits::SpreadAllocate;
     use openbrush::{
-        contracts::{ownable::*, psp34::PSP34Error},
+        contracts::{
+            ownable::*,
+            psp34::PSP34Error,
+        },
         traits::Storage,
     };
-    use pallet_marketplace::{impls::marketplace::*, traits::marketplace::*};
+    use pallet_marketplace::{
+        impls::marketplace::*,
+        traits::marketplace::*,
+    };
 
     // MarketplaceContract contract storage
     #[ink(storage)]
@@ -46,43 +52,45 @@ pub mod marketplace {
     }
 
     impl MarketplaceSale for MarketplaceContract {}
-}
 
-// ***************************** Tests *******************************
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use ink_lang as ink;
-    use crate::marketplace::MarketplaceContract;
-    use ink_env::{test, Environment};
-    // use openbrush::traits::AccountId;
-    use pallet_marketplace::traits::marketplace::*;
+    // ***************************** Tests *******************************
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use crate::marketplace::MarketplaceContract;
+        use ink_env::{
+            test
+        };
+        use ink_lang as ink;
+        // use openbrush::traits::AccountId;
+        use pallet_marketplace::traits::marketplace::*;
 
-    #[ink::test]
-    fn new_works() {
-        let marketplace = init_contract();
-        assert_eq!(marketplace.get_marketplace_fee(), 100);
-    }
+        #[ink::test]
+        fn new_works() {
+            let marketplace = init_contract();
+            assert_eq!(marketplace.get_marketplace_fee(), 100);
+        }
 
-    #[ink::test]
-    fn set_marketplace_fee_works() {
-        let accounts = default_accounts();
-        set_sender(accounts.alice);
-        let mut marketplace = init_contract();
+        #[ink::test]
+        fn set_marketplace_fee_works() {
+            let accounts = default_accounts();
+            set_sender(accounts.alice);
+            let mut marketplace = init_contract();
 
-        assert!(marketplace.set_marketplace_fee(120).is_ok());
-        assert_eq!(marketplace.get_marketplace_fee(), 120);
-    }
+            assert!(marketplace.set_marketplace_fee(120).is_ok());
+            assert_eq!(marketplace.get_marketplace_fee(), 120);
+        }
 
-    fn init_contract() -> MarketplaceContract {
-        MarketplaceContract::new()
-    }
+        fn init_contract() -> MarketplaceContract {
+            MarketplaceContract::new()
+        }
 
-    fn default_accounts() -> test::DefaultAccounts<ink_env::DefaultEnvironment> {
-        test::default_accounts::<Environment>()
-    }
+        fn default_accounts() -> test::DefaultAccounts<ink_env::DefaultEnvironment> {
+            test::default_accounts::<Environment>()
+        }
 
-    fn set_sender(sender: AccountId) {
-        ink_env::test::set_caller::<Environment>(sender);
+        fn set_sender(sender: AccountId) {
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(sender);
+        }
     }
 }
