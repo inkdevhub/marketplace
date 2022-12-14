@@ -79,4 +79,8 @@ where
     default fn is_listed(&self, contract_address: AccountId, token_id: Id) -> Option<u16> {
         None
     }
+
+    default fn set_contract_metadata(&mut self, ipfs: String) -> Result<(), MarketplaceError> {
+        Ok(())
+    }
 }

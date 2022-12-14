@@ -46,4 +46,7 @@ pub trait MarketplaceSale {
     /// Checks if NFT token is listed on the marketplace.
     #[ink(message)]
     fn is_listed(&self, contract_address: AccountId, token_id: Id) -> Option<u16>;
+
+    #[ink(message)]
+    fn set_contract_metadata(&mut self, ipfs: String) -> Result<(), MarketplaceError>;
 }
