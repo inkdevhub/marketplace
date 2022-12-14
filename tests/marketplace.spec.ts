@@ -4,6 +4,8 @@ import { encodeAddress } from '@polkadot/keyring';
 import BN from 'bn.js';
 import Market_factory from '../types/constructors/marketplace';
 import Market from '../types/contracts/marketplace';
+import TestPSP34_factory from '../types/constructors/test_psp34';
+import TestPSP34 from '../types/contracts/test_psp34';
 
 import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
@@ -27,10 +29,12 @@ const keyring = new Keyring({ type: 'sr25519' });
 
 describe('Marketplace tests', () => {
   let marketplaceFactory: Market_factory;
+  let psp34Factory: TestPSP34_factory;
   let api: ApiPromise;
   let deployer: KeyringPair;
   let bob: KeyringPair;
-  let contract: Market;
+  let marketplace: Market;
+  let psp34: TestPSP34;
 
   const gasLimit = 18750000000;
   const ZERO_ADDRESS = encodeAddress(
@@ -43,22 +47,27 @@ describe('Marketplace tests', () => {
     deployer = keyring.addFromUri('//Alice');
     bob = keyring.addFromUri('//Bob');
     marketplaceFactory = new Market_factory(api, deployer);
-    contract = new Market((await marketplaceFactory.new()).address, deployer, api);
+    psp34Factory = new TestPSP34_factory(api, deployer);
+    marketplace = new Market((await marketplaceFactory.new()).address, deployer, api);
+    psp34 = new TestPSP34((await psp34Factory.new()).address, deployer, api);
   }
 
-  it('getMarketplaceFee works', async () => {
+  it('setup and mint works', async () => {
     await setup();
-
-    expect((await contract.query.getMarketplaceFee()).value).to.equal(100);
+    const { gasRequired } = await psp34.withSigner(bob).query.mint(bob.address, {u64: 1});
+    let mintResult = await psp34.withSigner(bob).tx.mint(bob.address, {u64: 1}, {gasLimit: gasRequired * 2n });
+    expect((await psp34.query.totalSupply()).value.rawNumber.toNumber()).to.equal(2);
+    expect((await psp34.query.balanceOf(bob.address)).value).to.equal(1);
+    expect((await psp34.query.ownerOf({ u64: 1 })).value).to.equal(bob.address);
   })
 
   it('setMarketplaceFee works', async () => {
     await setup();
-    let { gasRequired } = await contract.query.setMarketplaceFee(120);
+    let { gasRequired } = await marketplace.query.setMarketplaceFee(120);
 
-    let result = await contract.tx.setMarketplaceFee(120, { gasLimit: gasRequired });
+    let result = await marketplace.tx.setMarketplaceFee(120, { gasLimit: gasRequired });
     console.log(result);
-    expect((await contract.query.getMarketplaceFee()).value).to.equal(120);
+    expect((await marketplace.query.getMarketplaceFee()).value).to.equal(120);
   })
 
 })
