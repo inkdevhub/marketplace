@@ -19,13 +19,14 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-use core::default;
-
-use crate::impls::marketplace::types::{
-    Data,
-    MarketplaceError,
+use crate::{
+    impls::marketplace::types::{
+        Data,
+        Item,
+        MarketplaceError,
+    },
+    traits::marketplace::MarketplaceSale,
 };
-pub use crate::traits::marketplace::MarketplaceSale;
 use ink_env::Hash;
 use openbrush::{
     contracts::{
@@ -71,9 +72,13 @@ where
         price: Balance,
     ) -> Result<(), MarketplaceError> {
         self.check_owner(contract_address, token_id.clone())?;
-        self.data::<Data>()
-            .items
-            .insert(&(contract_address, token_id), &price);
+        self.data::<Data>().items.insert(
+            &(contract_address, token_id),
+            &Item {
+                owner: Self::env().caller(),
+                price,
+            },
+        );
         Ok(())
     }
 
@@ -96,23 +101,53 @@ where
         contract_address: AccountId,
         token_id: Id,
     ) -> Result<(), MarketplaceError> {
-        if let Some(price) = self.data::<Data>().items.get(&(contract_address, token_id)) {
+        if let Some(item) = self.data::<Data>().items.get(&(contract_address, token_id)) {
             let value = Self::env().transferred_value();
-            self.check_value(value, price)?;
-            // TODO calculate, fee, royalty
+            self.check_value(value, item.price)?;
+            
+            let marketplace_fee = value
+                .checked_mul(self.data::<Data>().fee as u128)
+                .unwrap_or_default()
+                .checked_div(10_000)
+                .unwrap_or_default();
+
+            let collection = self
+                .data::<Data>()
+                .registered_contracts
+                .get(&contract_address)
+                .unwrap();
+            let author_royalty = value
+                .checked_mul(collection.royalty as u128)
+                .unwrap_or_default()
+                .checked_div(10_000)
+                .unwrap_or_default();
+            let seller_fee = value
+                .checked_sub(marketplace_fee)
+                .unwrap_or_default()
+                .checked_sub(author_royalty)
+                .unwrap_or_default();
+
+            // Self::env()
+            //     .transfer(self.data::<Data>().market_fee_recepient, marketplace_fee)
+            //     .map_err(|_| MarketplaceError::TransferToMarketplaceFailed)?;
+            // Self::env()
+            //     .transfer(item.owner, seller_fee)
+            //     .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
+            // Self::env()
+            //     .transfer(collection.owner, author_royalty)
+            //     .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
+
+            return Ok(());
         } else {
             return Err(MarketplaceError::ItemNotListedForSale)
         }
-
-        Ok(())
     }
 
     default fn register(&mut self, contract_address: AccountId) -> Result<(), MarketplaceError> {
         Ok(())
     }
 
-    // TODO return owner check
-    // #[modifiers(only_owner)]
+    #[modifiers(only_owner)]
     default fn set_marketplace_fee(&mut self, fee: u16) -> Result<(), MarketplaceError> {
         // TODO check max fee
         self.data::<Data>().fee = fee;
@@ -124,10 +159,25 @@ where
     }
 
     default fn get_price(&self, contract_address: AccountId, token_id: Id) -> Option<Balance> {
-        self.data::<Data>().items.get(&(contract_address, token_id))
+        if let Some(item) = self.data::<Data>().items.get(&(contract_address, token_id)) {
+            return Some(item.price)
+        }
+
+        None
     }
 
     default fn set_contract_metadata(&mut self, ipfs: String) -> Result<(), MarketplaceError> {
+        Ok(())
+    }
+
+    default fn get_fee_recepient(&self) -> AccountId {
+        self.data::<Data>().market_fee_recepient
+    }
+
+    #[modifiers(only_owner)]
+    default fn set_fee_recepient(&mut self, fee_recepient: AccountId) -> Result<(), MarketplaceError> {
+        self.data::<Data>().market_fee_recepient = fee_recepient;
+
         Ok(())
     }
 }

@@ -49,4 +49,10 @@ pub trait MarketplaceSale {
 
     #[ink(message)]
     fn set_contract_metadata(&mut self, ipfs: String) -> Result<(), MarketplaceError>;
+
+    #[ink(message)]
+    fn get_fee_recepient(&self) -> AccountId;
+
+    #[ink(message)]
+    fn set_fee_recepient(&mut self, fee_recepient: AccountId) -> Result<(), MarketplaceError>;
 }

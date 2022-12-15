@@ -11,8 +11,9 @@ pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 #[openbrush::upgradeable_storage(STORAGE_KEY)]
 pub struct Data {
     pub registered_contracts: Mapping<AccountId, RegisteredCollection>,
-    pub items: Mapping<(AccountId, Id), Balance>,
+    pub items: Mapping<(AccountId, Id), Item>,
     pub fee: u16,
+    pub market_fee_recepient: AccountId,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -29,11 +30,12 @@ pub enum MarketplaceError {
     /// NFT contract is not registered to the marketplace. 
     NotRegisteredContract,
     /// Value send to buy method is invalid
-    BadBuyValue
+    BadBuyValue,
+    TransferToMarketplaceFailed,
+    TransferToOwnerFailed,
+    TransferToAuthorFailed
 }
 
-// #[derive(Default, Debug, Clone, PartialEq, Eq, Encode, Decode)]
-// #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
 #[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]
 #[cfg_attr(
     feature = "std",
@@ -43,6 +45,16 @@ pub struct RegisteredCollection {
     pub owner: AccountId,
     pub metadata: String,
     pub royalty: u16,
+}
+
+#[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]
+#[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
+)]
+pub struct Item {
+    pub owner: AccountId,
+    pub price: Balance,
 }
 
 impl From<OwnableError> for MarketplaceError {

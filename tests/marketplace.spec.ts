@@ -48,7 +48,7 @@ describe('Marketplace tests', () => {
     bob = keyring.addFromUri('//Bob');
     marketplaceFactory = new Market_factory(api, deployer);
     psp34Factory = new TestPSP34_factory(api, deployer);
-    marketplace = new Market((await marketplaceFactory.new()).address, deployer, api);
+    marketplace = new Market((await marketplaceFactory.new(deployer.address)).address, deployer, api);
     psp34 = new TestPSP34((await psp34Factory.new()).address, deployer, api);
   }
 
