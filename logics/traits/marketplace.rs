@@ -1,4 +1,7 @@
-use crate::impls::marketplace::types::MarketplaceError;
+use crate::impls::marketplace::types::{
+    MarketplaceError,
+    RegisteredCollection,
+};
 use ink_env::Hash;
 use openbrush::{
     contracts::psp34::Id,
@@ -25,6 +28,7 @@ pub trait MarketplaceSale {
     ) -> Result<(), MarketplaceError>;
 
     /// Removes NFT from the marketplace sale.
+    #[ink(message)]
     fn unlist(&mut self, contract_address: AccountId, token_id: Id)
         -> Result<(), MarketplaceError>;
 
@@ -40,6 +44,9 @@ pub trait MarketplaceSale {
         royalty_receiver: AccountId,
         royalty: u16,
     ) -> Result<(), MarketplaceError>;
+
+    #[ink(message)]
+    fn get_contract(&self, contract_address: AccountId) -> Option<RegisteredCollection>;
 
     /// Sets the marketplace fee.
     #[ink(message)]

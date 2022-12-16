@@ -1,6 +1,8 @@
+import '@polkadot/api-augment';
 import { expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import { encodeAddress } from '@polkadot/keyring';
+import { FrameSystemAccountInfo } from '@polkadot/types/lookup';
 import BN from 'bn.js';
 import Market_factory from '../types/constructors/marketplace';
 import Market from '../types/contracts/marketplace';
@@ -33,9 +35,9 @@ describe('Marketplace tests', () => {
   let api: ApiPromise;
   let deployer: KeyringPair;
   let bob: KeyringPair;
+  let charlie: KeyringPair;
   let marketplace: Market;
   let psp34: TestPSP34;
-  let psp34Address: string;
 
   const gasLimit = 18750000000;
   const ZERO_ADDRESS = encodeAddress(
@@ -47,11 +49,11 @@ describe('Marketplace tests', () => {
     api = await ApiPromise.create({ provider: wsProvider });
     deployer = keyring.addFromUri('//Alice');
     bob = keyring.addFromUri('//Bob');
+    charlie = keyring.addFromUri('//Charlie');
     marketplaceFactory = new Market_factory(api, deployer);
     psp34Factory = new TestPSP34_factory(api, deployer);
     marketplace = new Market((await marketplaceFactory.new(deployer.address)).address, deployer, api);
-    psp34Address = (await psp34Factory.new()).address;
-    psp34 = new TestPSP34(psp34Address, deployer, api);
+    psp34 = new TestPSP34((await psp34Factory.new()).address, deployer, api);
   }
 
   it('setup and mint works', async () => {
@@ -71,20 +73,95 @@ describe('Marketplace tests', () => {
     expect((await marketplace.query.getMarketplaceFee()).value).to.equal(120);
   })
 
-  it('list works', async () => {
+  it('list / unlist works', async () => {
     await setup();
-
-    // Mint a token to be listed on the marketplace.
-    let { gasRequired } = await psp34.withSigner(bob).query.mint(bob.address, {u64: 1});
-    const mintResult = await psp34.withSigner(bob).tx.mint(bob.address, {u64: 1}, {gasLimit: gasRequired * 2n });
+    await mintToken(bob);
+    await registerContract(bob);
     
-    // List token on the marketplace.
-    gasRequired = await (await marketplace.withSigner(bob).query.list(psp34Address, {u64: 1}, 100)).gasRequired;
-    const listResult = await marketplace.withSigner(bob).query.list(psp34Address, {u64: 1}, 100, { gasLimit: gasRequired * 2n });
-    console.log(listResult);
-    expect((await marketplace.query.getPrice(psp34Address, {u64: 1})).value).to.equal(100);
+    // List token to the marketplace.
+    await listToken(bob);
+    
+    // Check if the token is actually listed.
+    expect((await marketplace.query.getPrice(psp34.address, {u64: 1})).value).to.equal(100);
+
+    // Unlist token from the marketplace.
+    const { gasRequired } = await marketplace.withSigner(bob).query.unlist(psp34.address, {u64: 1});
+    const unlistResult = await marketplace.withSigner(bob).tx.unlist(psp34.address, {u64: 1}, { gasLimit: gasRequired * 2n });
+    expect(unlistResult.result?.isInBlock).to.be.true;
+    
+    // Check if the token is actually unlisted.
+    expect((await marketplace.query.getPrice(psp34.address, {u64: 1})).value).to.equal(null);
   });
 
+  // it('list fails if not a nft owner', async () => {
+  //   await setup();
+  //   await mintToken(bob);
+  //   await registerContract(bob);
+    
+  //   // Try to list token to the marketplace.
+  //   const { gasRequired } = await marketplace.withSigner(deployer).query.list(psp34Address, {u64: 1}, 100);
+  //   const listResult = await marketplace.withSigner(deployer).tx.list(psp34Address, {u64: 1}, 100, { gasLimit: gasRequired * 2n });
+  //   // TODO how to handle errors thrown by contract
+  //   console.log(listResult);
+  // });
+
+  it('buy works', async () => {
+    await setup();
+    await mintToken(charlie);
+    await registerContract(bob);
+    await listToken(charlie);
+
+    const deployerOriginalBalance = await getBalance(deployer);
+    const bobOriginalBalance = await getBalance(bob);
+    const charlieOriginalBalance = await getBalance(charlie);
+
+    console.log(deployerOriginalBalance.toHuman(), bobOriginalBalance.toHuman(), charlieOriginalBalance.toHuman());
+
+    // Buy token
+    const { gasRequired } = await marketplace.withSigner(deployer).query.buy(psp34.address, {u64: 1});
+    const buyResult = await marketplace.withSigner(deployer).tx.buy(
+      psp34.address, 
+      {u64: 1},
+      { gasLimit: gasRequired * 2n, value: new BN('100000000000000000000') });
+
+    expect(buyResult.result?.isInBlock).to.be.true;
+
+    // Balances check.
+    const deployerBalance = await getBalance(deployer);
+    const bobBalance = await getBalance(bob);
+    const charlieBalance = await getBalance(charlie);
+    console.log(deployerBalance.toHuman(), bobBalance.toHuman(), charlieBalance.toHuman());
+    console.log(deployerOriginalBalance.sub(deployerBalance).toString());
+    // expect(deployerOriginalBalance).to.be.equal(deployerOriginalBalance.sub(new BN('100000000000000000000')));
+  });
+
+  // Helper function to mint a token.
+  async function mintToken(signer: KeyringPair): Promise<void> {
+    const { gasRequired } = await psp34.withSigner(signer).query.mint(signer.address, {u64: 1});
+    const mintResult = await psp34.withSigner(signer).tx.mint(signer.address, {u64: 1}, { gasLimit: gasRequired * 2n });
+    expect(mintResult.result?.isInBlock).to.be.true;
+  }
+
+  // Helper function to register contract.
+  async function registerContract(signer:KeyringPair) {
+    const { gasRequired } = await marketplace.withSigner(bob).query.register(psp34.address, bob.address, 100);
+    const registerResult = await marketplace.withSigner(bob).tx.register(psp34.address, bob.address, 100, { gasLimit: gasRequired * 2n });
+    expect(registerResult.result?.isInBlock).to.be.true;
+  }
+
+  // Helper function to list token for sale.
+  async function listToken(signer:KeyringPair) {
+    const { gasRequired } = await marketplace.withSigner(signer).query.list(psp34.address, {u64: 1}, 100);
+    const listResult = await marketplace.withSigner(signer).tx.list(psp34.address, {u64: 1}, 100, { gasLimit: gasRequired * 2n });
+    expect(listResult.result?.isInBlock).to.be.true;
+  }
+
+  // Helper function to get account balance
+  async function getBalance(account:KeyringPair) {
+    const balances = await api.query.system.account<FrameSystemAccountInfo>(account.address);
+
+    return balances.data.free;
+  }
 })
 
 // Helper function to parse Events

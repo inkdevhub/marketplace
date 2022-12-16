@@ -19,8 +19,6 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-use core::default;
-
 use crate::{
     impls::marketplace::types::{
         Data,
@@ -107,7 +105,12 @@ where
         contract_address: AccountId,
         token_id: Id,
     ) -> Result<(), MarketplaceError> {
-        if let Some(item) = self.data::<Data>().items.get(&(contract_address, token_id)) {
+        if let Some(item) = self
+            .data::<Data>()
+            .items
+            .get(&(contract_address, token_id.clone()))
+        {
+            // TODO what if user alrady owns a token and wants to buy it again.
             let value = Self::env().transferred_value();
             self.check_value(value, item.price)?;
 
@@ -133,17 +136,21 @@ where
                 .checked_sub(author_royalty)
                 .unwrap_or_default();
 
-            Self::env()
-                .transfer(self.data::<Data>().market_fee_recipient, marketplace_fee)
-                .map_err(|_| MarketplaceError::TransferToMarketplaceFailed)?;
-            Self::env()
-                .transfer(item.owner, seller_fee)
-                .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
-            Self::env()
-                .transfer(collection.royalty_receiver, author_royalty)
-                .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
+            if let Some(token_owner) = PSP34Ref::owner_of(&contract_address, token_id) {
+                Self::env()
+                    .transfer(token_owner, seller_fee)
+                    .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
+                Self::env()
+                    .transfer(self.data::<Data>().market_fee_recipient, marketplace_fee)
+                    .map_err(|_| MarketplaceError::TransferToMarketplaceFailed)?;
+                Self::env()
+                    .transfer(collection.royalty_receiver, author_royalty)
+                    .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
 
-            return Ok(())
+                return Ok(())
+            } else {
+                return Err(MarketplaceError::NotOwner)
+            }
         } else {
             return Err(MarketplaceError::ItemNotListedForSale)
         }
@@ -181,11 +188,18 @@ where
         }
     }
 
+    default fn get_contract(&self, contract_address: AccountId) -> Option<RegisteredCollection> {
+        self.data::<Data>()
+            .registered_contracts
+            .get(&contract_address)
+    }
+
     #[modifiers(only_owner)]
     default fn set_marketplace_fee(&mut self, fee: u16) -> Result<(), MarketplaceError> {
         let max_fee = self.data::<Data>().max_fee;
         self.check_fee(fee, max_fee)?;
         self.data::<Data>().fee = fee;
+
         Ok(())
     }
 

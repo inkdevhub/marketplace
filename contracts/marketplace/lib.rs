@@ -5,10 +5,7 @@
 pub mod marketplace {
     use ink_storage::traits::SpreadAllocate;
     use openbrush::{
-        contracts::{
-            ownable::*,
-            psp34::PSP34Error,
-        },
+        contracts::ownable::*,
         traits::Storage,
     };
     use pallet_marketplace::{
@@ -26,22 +23,10 @@ pub mod marketplace {
         marketplace: types::Data,
     }
 
-    /// Event emitted when a NFT contract registration occurs.
-    #[ink(event)]
-    pub struct ContractRegistered {
-        #[ink(topic)]
-        contract_address: AccountId,
-        #[ink(topic)]
-        user_address: AccountId,
-    }
-
-    pub type Result<T> = core::result::Result<T, PSP34Error>;
-
     impl MarketplaceContract {
         #[ink(constructor)]
         pub fn new(market_fee_recipient: AccountId) -> Self {
             ink_lang::codegen::initialize_contract(|instance: &mut MarketplaceContract| {
-                // TODO do initialization
                 instance.marketplace.fee = 100; // 1%
                 instance.marketplace.max_fee = 1000; // 10%
                 instance.marketplace.market_fee_recipient = market_fee_recipient;
@@ -61,7 +46,10 @@ pub mod marketplace {
         use crate::marketplace::MarketplaceContract;
         use ink_env::test;
         use ink_lang as ink;
-        use openbrush::contracts::psp34::Id;
+        use openbrush::{
+            contracts::psp34::Id,
+            traits::String,
+        };
         use pallet_marketplace::impls::marketplace::types::MarketplaceError;
 
         #[ink::test]
@@ -136,6 +124,19 @@ pub mod marketplace {
                 marketplace.buy(contract_address(), Id::U128(1)),
                 Err(MarketplaceError::ItemNotListedForSale)
             );
+        }
+
+        #[ink::test]
+        fn register_contract_works() {
+            let mut marketplace = init_contract();
+
+            assert!(marketplace
+                .register(contract_address(), fee_recipient(), 999)
+                .is_ok());
+            let contract = marketplace.get_contract(contract_address()).unwrap();
+            assert_eq!(contract.royalty_receiver, fee_recipient());
+            assert_eq!(contract.royalty, 999);
+            assert_eq!(contract.metadata, String::from(""));
         }
 
         #[ink::test]
