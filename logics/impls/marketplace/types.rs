@@ -1,9 +1,23 @@
-use openbrush::contracts::ownable::OwnableError;
-use openbrush::contracts::psp34::Id;
-use openbrush::storage::Mapping;
-use openbrush::traits::{AccountId, Balance, String};
-use scale::{Decode, Encode};
-use ink_storage::traits::{PackedLayout, SpreadLayout};
+use ink_storage::traits::{
+    PackedLayout,
+    SpreadLayout,
+};
+use openbrush::{
+    contracts::{
+        ownable::OwnableError,
+        psp34::Id,
+    },
+    storage::Mapping,
+    traits::{
+        AccountId,
+        Balance,
+        String,
+    },
+};
+use scale::{
+    Decode,
+    Encode,
+};
 
 pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 
@@ -13,7 +27,8 @@ pub struct Data {
     pub registered_contracts: Mapping<AccountId, RegisteredCollection>,
     pub items: Mapping<(AccountId, Id), Item>,
     pub fee: u16,
-    pub market_fee_recepient: AccountId,
+    pub max_fee: u16,
+    pub market_fee_recipient: AccountId,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -27,13 +42,18 @@ pub enum MarketplaceError {
     ItemNotFound,
     /// A NFT item is not listed for sale
     ItemNotListedForSale,
-    /// NFT contract is not registered to the marketplace. 
+    /// NFT contract is not registered to the marketplace.
     NotRegisteredContract,
     /// Value send to buy method is invalid
     BadBuyValue,
+    /// Fee transfer to the marketplace failed.
     TransferToMarketplaceFailed,
+    /// Royalty transfer to the marketplace failed.
     TransferToOwnerFailed,
-    TransferToAuthorFailed
+    ///
+    TransferToAuthorFailed,
+    ContractAlreadyRegistered,
+    FeeToHigh,
 }
 
 #[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]
@@ -42,7 +62,7 @@ pub enum MarketplaceError {
     derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
 )]
 pub struct RegisteredCollection {
-    pub owner: AccountId,
+    pub royalty_receiver: AccountId,
     pub metadata: String,
     pub royalty: u16,
 }

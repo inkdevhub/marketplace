@@ -2,7 +2,11 @@ use crate::impls::marketplace::types::MarketplaceError;
 use ink_env::Hash;
 use openbrush::{
     contracts::psp34::Id,
-    traits::{AccountId, Balance, String},
+    traits::{
+        AccountId,
+        Balance,
+        String,
+    },
 };
 
 #[openbrush::trait_definition]
@@ -21,11 +25,8 @@ pub trait MarketplaceSale {
     ) -> Result<(), MarketplaceError>;
 
     /// Removes NFT from the marketplace sale.
-    fn unlist(
-        &mut self,
-        contract_address: AccountId,
-        token_id: Id,
-    ) -> Result<(), MarketplaceError>;
+    fn unlist(&mut self, contract_address: AccountId, token_id: Id)
+        -> Result<(), MarketplaceError>;
 
     /// Buy NFT item from the marketplace.
     #[ink(message, payable)]
@@ -33,7 +34,12 @@ pub trait MarketplaceSale {
 
     /// Registers NFT contract to the marketplace.
     #[ink(message)]
-    fn register(&mut self, contract_address: AccountId) -> Result<(), MarketplaceError>; 
+    fn register(
+        &mut self,
+        contract_address: AccountId,
+        royalty_receiver: AccountId,
+        royalty: u16,
+    ) -> Result<(), MarketplaceError>;
 
     /// Sets the marketplace fee.
     #[ink(message)]
@@ -43,6 +49,10 @@ pub trait MarketplaceSale {
     #[ink(message)]
     fn get_marketplace_fee(&self) -> u16;
 
+    /// Gets max fee that can be applied to an item price.
+    #[ink(message)]
+    fn get_max_fee(&self) -> u16;
+
     /// Checks if NFT token is listed on the marketplace.
     #[ink(message)]
     fn get_price(&self, contract_address: AccountId, token_id: Id) -> Option<Balance>;
@@ -51,8 +61,8 @@ pub trait MarketplaceSale {
     fn set_contract_metadata(&mut self, ipfs: String) -> Result<(), MarketplaceError>;
 
     #[ink(message)]
-    fn get_fee_recepient(&self) -> AccountId;
+    fn get_fee_recipient(&self) -> AccountId;
 
     #[ink(message)]
-    fn set_fee_recepient(&mut self, fee_recepient: AccountId) -> Result<(), MarketplaceError>;
+    fn set_fee_recipient(&mut self, fee_recipient: AccountId) -> Result<(), MarketplaceError>;
 }

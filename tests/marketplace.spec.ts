@@ -35,6 +35,7 @@ describe('Marketplace tests', () => {
   let bob: KeyringPair;
   let marketplace: Market;
   let psp34: TestPSP34;
+  let psp34Address: string;
 
   const gasLimit = 18750000000;
   const ZERO_ADDRESS = encodeAddress(
@@ -49,7 +50,8 @@ describe('Marketplace tests', () => {
     marketplaceFactory = new Market_factory(api, deployer);
     psp34Factory = new TestPSP34_factory(api, deployer);
     marketplace = new Market((await marketplaceFactory.new(deployer.address)).address, deployer, api);
-    psp34 = new TestPSP34((await psp34Factory.new()).address, deployer, api);
+    psp34Address = (await psp34Factory.new()).address;
+    psp34 = new TestPSP34(psp34Address, deployer, api);
   }
 
   it('setup and mint works', async () => {
@@ -66,9 +68,22 @@ describe('Marketplace tests', () => {
     let { gasRequired } = await marketplace.query.setMarketplaceFee(120);
 
     let result = await marketplace.tx.setMarketplaceFee(120, { gasLimit: gasRequired });
-    console.log(result);
     expect((await marketplace.query.getMarketplaceFee()).value).to.equal(120);
   })
+
+  it('list works', async () => {
+    await setup();
+
+    // Mint a token to be listed on the marketplace.
+    let { gasRequired } = await psp34.withSigner(bob).query.mint(bob.address, {u64: 1});
+    const mintResult = await psp34.withSigner(bob).tx.mint(bob.address, {u64: 1}, {gasLimit: gasRequired * 2n });
+    
+    // List token on the marketplace.
+    gasRequired = await (await marketplace.withSigner(bob).query.list(psp34Address, {u64: 1}, 100)).gasRequired;
+    const listResult = await marketplace.withSigner(bob).query.list(psp34Address, {u64: 1}, 100, { gasLimit: gasRequired * 2n });
+    console.log(listResult);
+    expect((await marketplace.query.getPrice(psp34Address, {u64: 1})).value).to.equal(100);
+  });
 
 })
 

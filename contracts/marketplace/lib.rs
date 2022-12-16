@@ -39,11 +39,12 @@ pub mod marketplace {
 
     impl MarketplaceContract {
         #[ink(constructor)]
-        pub fn new(market_fee_recepient: AccountId) -> Self {
+        pub fn new(market_fee_recipient: AccountId) -> Self {
             ink_lang::codegen::initialize_contract(|instance: &mut MarketplaceContract| {
                 // TODO do initialization
-                instance.marketplace.fee = 100;
-                instance.marketplace.market_fee_recepient = market_fee_recepient;
+                instance.marketplace.fee = 100; // 1%
+                instance.marketplace.max_fee = 1000; // 10%
+                instance.marketplace.market_fee_recipient = market_fee_recipient;
 
                 let caller = instance.env().caller();
                 instance._init_with_owner(caller);
@@ -60,13 +61,15 @@ pub mod marketplace {
         use crate::marketplace::MarketplaceContract;
         use ink_env::test;
         use ink_lang as ink;
+        use openbrush::contracts::psp34::Id;
         use pallet_marketplace::impls::marketplace::types::MarketplaceError;
 
         #[ink::test]
         fn new_works() {
             let marketplace = init_contract();
             assert_eq!(marketplace.get_marketplace_fee(), 100);
-            assert_eq!(marketplace.get_fee_recepient(), fee_recipient());
+            assert_eq!(marketplace.get_max_fee(), 1000);
+            assert_eq!(marketplace.get_fee_recipient(), fee_recipient());
         }
 
         #[ink::test]
@@ -92,25 +95,72 @@ pub mod marketplace {
         }
 
         #[ink::test]
-        fn set_fee_recepient_works() {
+        fn set_marketplace_fee_fails_if_fee_too_high() {
             let mut marketplace = init_contract();
-            let accounts = default_accounts();
 
-            assert!(marketplace.set_fee_recepient(accounts.bob).is_ok());
-            assert_eq!(marketplace.get_fee_recepient(), accounts.bob);
+            assert_eq!(
+                marketplace.set_marketplace_fee(1001),
+                Err(MarketplaceError::FeeToHigh)
+            );
+            assert!(marketplace.set_marketplace_fee(1000).is_ok());
         }
 
         #[ink::test]
-        fn set_fee_recepient_fails_if_not_owner() {
+        fn set_fee_recipient_works() {
+            let mut marketplace = init_contract();
+            let accounts = default_accounts();
+
+            assert!(marketplace.set_fee_recipient(accounts.bob).is_ok());
+            assert_eq!(marketplace.get_fee_recipient(), accounts.bob);
+        }
+
+        #[ink::test]
+        fn set_fee_recipient_fails_if_not_owner() {
             let mut marketplace = init_contract();
             let accounts = default_accounts();
             set_sender(accounts.bob);
 
             assert_eq!(
-                marketplace.set_fee_recepient(accounts.bob),
+                marketplace.set_fee_recipient(accounts.bob),
                 Err(MarketplaceError::OwnableError(
                     OwnableError::CallerIsNotOwner
                 ))
+            );
+        }
+
+        #[ink::test]
+        fn buy_can_not_buy_unlisted_token() {
+            let mut marketplace = init_contract();
+
+            assert_eq!(
+                marketplace.buy(contract_address(), Id::U128(1)),
+                Err(MarketplaceError::ItemNotListedForSale)
+            );
+        }
+
+        #[ink::test]
+        fn register_fails_if_fee_too_high() {
+            let mut marketplace = init_contract();
+
+            assert_eq!(
+                marketplace.register(contract_address(), fee_recipient(), 1001),
+                Err(MarketplaceError::FeeToHigh)
+            );
+            assert!(marketplace
+                .register(contract_address(), fee_recipient(), 999)
+                .is_ok());
+        }
+
+        #[ink::test]
+        fn register_fails_if_contract_already_registered() {
+            let mut marketplace = init_contract();
+
+            assert!(marketplace
+                .register(contract_address(), fee_recipient(), 999)
+                .is_ok());
+            assert_eq!(
+                marketplace.register(contract_address(), fee_recipient(), 999),
+                Err(MarketplaceError::ContractAlreadyRegistered)
             );
         }
 
@@ -128,6 +178,10 @@ pub mod marketplace {
 
         fn fee_recipient() -> AccountId {
             AccountId::from([0x1; 32])
+        }
+
+        fn contract_address() -> AccountId {
+            AccountId::from([0x2; 32])
         }
     }
 }
