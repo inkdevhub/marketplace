@@ -5,7 +5,10 @@
 pub mod marketplace {
     use ink_storage::traits::SpreadAllocate;
     use openbrush::{
-        contracts::ownable::*,
+        contracts::{
+            ownable::*,
+            reentrancy_guard::*,
+        },
         traits::{
             Storage,
             String,
@@ -22,6 +25,8 @@ pub mod marketplace {
     pub struct MarketplaceContract {
         #[storage_field]
         ownable: ownable::Data,
+        #[storage_field]
+        guard: reentrancy_guard::Data,
         #[storage_field]
         marketplace: types::Data,
     }

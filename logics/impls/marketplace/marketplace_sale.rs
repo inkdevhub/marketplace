@@ -32,6 +32,7 @@ use openbrush::{
     contracts::{
         ownable::*,
         psp34::*,
+        reentrancy_guard::*,
     },
     modifiers,
     traits::{
@@ -63,7 +64,7 @@ pub trait Internal {
 
 impl<T> MarketplaceSale for T
 where
-    T: Storage<Data> + Storage<ownable::Data>,
+    T: Storage<Data> + Storage<ownable::Data> + Storage<reentrancy_guard::Data>,
 {
     default fn factory(&mut self, marketplace_ipfs: String) -> Result<(), MarketplaceError> {
         // TODO implement
@@ -111,7 +112,7 @@ where
         Ok(())
     }
 
-    // TODO reentrancy check?
+    #[modifiers(non_reentrant)]
     default fn buy(
         &mut self,
         contract_address: AccountId,

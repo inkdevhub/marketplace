@@ -6,6 +6,7 @@ use openbrush::{
     contracts::{
         ownable::OwnableError,
         psp34::Id,
+        reentrancy_guard::ReentrancyGuardError,
     },
     storage::Mapping,
     traits::{
@@ -36,6 +37,8 @@ pub struct Data {
 pub enum MarketplaceError {
     /// Caller is not a marketplace owner.
     OwnableError(OwnableError),
+    /// Caller is tryin to make second call while 1st one is still executing.
+    ReentrancyError(ReentrancyGuardError),
     /// Caller is not an NFT owner.
     NotOwner,
     /// A NFT item is not found in a contract.
@@ -82,5 +85,11 @@ pub struct Item {
 impl From<OwnableError> for MarketplaceError {
     fn from(error: OwnableError) -> Self {
         MarketplaceError::OwnableError(error)
+    }
+}
+
+impl From<ReentrancyGuardError> for MarketplaceError {
+    fn from(error: ReentrancyGuardError) -> Self {
+        MarketplaceError::ReentrancyError(error)
     }
 }
