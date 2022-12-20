@@ -54,6 +54,8 @@ pub enum MarketplaceError {
     TransferToAuthorFailed,
     ContractAlreadyRegistered,
     FeeToHigh,
+    /// Unable to transfer token to a new owner.
+    UnableToTransferToken,
 }
 
 #[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]
@@ -63,7 +65,7 @@ pub enum MarketplaceError {
 )]
 pub struct RegisteredCollection {
     pub royalty_receiver: AccountId,
-    pub metadata: String,
+    pub marketplace_ipfs: String,
     pub royalty: u16,
 }
 

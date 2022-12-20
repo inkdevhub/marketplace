@@ -16,7 +16,10 @@ use openbrush::{
 pub trait MarketplaceSale {
     /// Add NFT contract to the marketplace.
     #[ink(message)]
-    fn factory(&mut self, hash: Hash, ipfs: String) -> Result<(), MarketplaceError>;
+    fn factory(&mut self, marketplace_ipfs: String) -> Result<(), MarketplaceError>;
+
+    #[ink(message)]
+    fn add_new_psp34_hash(&mut self, hash: Hash) -> Result<(), MarketplaceError>;
 
     /// Create NFT item sale on the marketplace.
     #[ink(message)]
@@ -64,12 +67,19 @@ pub trait MarketplaceSale {
     #[ink(message)]
     fn get_price(&self, contract_address: AccountId, token_id: Id) -> Option<Balance>;
 
+    /// Sets contract metadata (ipfs url)
     #[ink(message)]
-    fn set_contract_metadata(&mut self, ipfs: String) -> Result<(), MarketplaceError>;
+    fn set_contract_metadata(
+        &mut self,
+        contract_address: AccountId,
+        ipfs: String,
+    ) -> Result<(), MarketplaceError>;
 
+    /// Gets the marketplace fee recipient
     #[ink(message)]
     fn get_fee_recipient(&self) -> AccountId;
 
+    /// Sets the marketplace fee recipient
     #[ink(message)]
     fn set_fee_recipient(&mut self, fee_recipient: AccountId) -> Result<(), MarketplaceError>;
 }

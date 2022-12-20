@@ -99,10 +99,10 @@ describe('Marketplace tests', () => {
   //   await registerContract(bob);
     
   //   // Try to list token to the marketplace.
-  //   const { gasRequired } = await marketplace.withSigner(deployer).query.list(psp34Address, {u64: 1}, 100);
-  //   const listResult = await marketplace.withSigner(deployer).tx.list(psp34Address, {u64: 1}, 100, { gasLimit: gasRequired * 2n });
-  //   // TODO how to handle errors thrown by contract
-  //   console.log(listResult);
+  //   const { gasRequired } = await marketplace.withSigner(charlie).query.list(psp34.address, {u64: 1}, 100);
+  //   const listResult = await marketplace.withSigner(charlie).tx.list(psp34.address, {u64: 1}, 100, { gasLimit: gasRequired * 2n });
+  //   // TODO how to handle errors returned by a contract
+  //   console.log('LR', listResult);
   // });
 
   it('buy works', async () => {
@@ -110,6 +110,10 @@ describe('Marketplace tests', () => {
     await mintToken(charlie);
     await registerContract(bob);
     await listToken(charlie);
+
+    // Charlie approves marketplace to be operator of the token
+    const approveGas = (await psp34.withSigner(charlie).query.approve(marketplace.address, { u64: 1 }, true)).gasRequired;
+    let approveResult = await psp34.withSigner(charlie).tx.approve(marketplace.address, { u64: 1 }, true, { gasLimit: approveGas });
 
     const deployerOriginalBalance = await getBalance(deployer);
     const bobOriginalBalance = await getBalance(bob);
@@ -131,8 +135,39 @@ describe('Marketplace tests', () => {
     const bobBalance = await getBalance(bob);
     const charlieBalance = await getBalance(charlie);
     console.log(deployerBalance.toHuman(), bobBalance.toHuman(), charlieBalance.toHuman());
-    console.log(deployerOriginalBalance.sub(deployerBalance).toString());
-    // expect(deployerOriginalBalance).to.be.equal(deployerOriginalBalance.sub(new BN('100000000000000000000')));
+    
+    // Check the marketplace fee receiver balance
+    // TODO needed to convert BN to string since BN comparison doesnt't work.
+    expect(bobBalance.toString()).to.be.equal(bobOriginalBalance.add(new BN('1000000000000000000')).toString());
+    // Check seller's balance
+    expect(charlieBalance.toString()).to.be.equal(charlieOriginalBalance.add(new BN('98000000000000000000')).toString());
+    // Check a new token owner
+    expect((await psp34.query.ownerOf({ u64: 1 })).value).to.equal(deployer.address);
+    // Check if allowance is unset.
+    expect((await psp34.query.allowance(charlie.address, marketplace.address, { u64: 1 })).value).to.equal(false);
+  });
+
+  it('setContractMetadata works', async () => {
+    await setup();
+    await registerContract(bob);
+    const metadata = 'ipfs://test';
+
+    const gas = (await marketplace.withSigner(deployer).query.setContractMetadata(psp34.address, metadata)).gasRequired;
+    const approveResult = await marketplace.withSigner(deployer).tx.setContractMetadata(psp34.address, metadata, { gasLimit: gas });
+
+    const contract = await (await marketplace.query.getContract(psp34.address)).value;
+    expect(contract.metadata).to.be.equal(metadata);
+  });
+
+  it('setContractMetadata returns error if no contract', async () => {
+    await setup();
+    const metadata = 'ipfs://test';
+
+    const gas = (await marketplace.withSigner(deployer).query.setContractMetadata(psp34.address, metadata)).gasRequired;
+    const approveResult = await marketplace.withSigner(deployer).query.setContractMetadata(psp34.address, metadata, { gasLimit: gas });
+
+    console.log(approveResult);
+    // expect(hex2a(mintResult.value.err.custom)).to.be.equal('BadMintValue');
   });
 
   // Helper function to mint a token.
@@ -140,6 +175,7 @@ describe('Marketplace tests', () => {
     const { gasRequired } = await psp34.withSigner(signer).query.mint(signer.address, {u64: 1});
     const mintResult = await psp34.withSigner(signer).tx.mint(signer.address, {u64: 1}, { gasLimit: gasRequired * 2n });
     expect(mintResult.result?.isInBlock).to.be.true;
+    expect((await psp34.query.ownerOf({ u64: 1 })).value).to.equal(signer.address);
   }
 
   // Helper function to register contract.
@@ -147,6 +183,7 @@ describe('Marketplace tests', () => {
     const { gasRequired } = await marketplace.withSigner(bob).query.register(psp34.address, bob.address, 100);
     const registerResult = await marketplace.withSigner(bob).tx.register(psp34.address, bob.address, 100, { gasLimit: gasRequired * 2n });
     expect(registerResult.result?.isInBlock).to.be.true;
+    // expect((await marketplace.query.getPrice(psp34.address, {u64: 1})).value).to.equal(100);
   }
 
   // Helper function to list token for sale.

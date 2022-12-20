@@ -46,10 +46,7 @@ pub mod marketplace {
         use crate::marketplace::MarketplaceContract;
         use ink_env::test;
         use ink_lang as ink;
-        use openbrush::{
-            contracts::psp34::Id,
-            traits::String,
-        };
+        use openbrush::contracts::psp34::Id;
         use pallet_marketplace::impls::marketplace::types::MarketplaceError;
 
         #[ink::test]
@@ -117,7 +114,7 @@ pub mod marketplace {
         }
 
         #[ink::test]
-        fn buy_can_not_buy_unlisted_token() {
+        fn buy_fails_if_unlisted_token() {
             let mut marketplace = init_contract();
 
             assert_eq!(

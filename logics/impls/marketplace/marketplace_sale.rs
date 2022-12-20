@@ -65,9 +65,17 @@ impl<T> MarketplaceSale for T
 where
     T: Storage<Data> + Storage<ownable::Data>,
 {
-    default fn factory(&mut self, hash: Hash, ipfs: String) -> Result<(), MarketplaceError> {
+    default fn factory(&mut self, marketplace_ipfs: String) -> Result<(), MarketplaceError> {
+        // TODO implement
+        // check_hash_exists
+        // create a new psp34/remark contract
+        // extend input parameters to fit nft contract construsctor.
         Ok(())
     }
+
+    default fn add_new_psp34_hash(&mut self, hash: Hash) -> Result<(), MarketplaceError> {
+        todo!();
+    }   
 
     default fn list(
         &mut self,
@@ -75,15 +83,19 @@ where
         token_id: Id,
         price: Balance,
     ) -> Result<(), MarketplaceError> {
-        self.check_owner(contract_address, token_id.clone())?;
-        self.data::<Data>().items.insert(
-            &(contract_address, token_id),
-            &Item {
-                owner: Self::env().caller(),
-                price,
-            },
-        );
-        Ok(())
+        match self.check_owner(contract_address, token_id.clone()) {
+            Ok(()) => {
+                self.data::<Data>().items.insert(
+                    &(contract_address, token_id),
+                    &Item {
+                        owner: Self::env().caller(),
+                        price,
+                    },
+                );
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
     }
 
     default fn unlist(
@@ -93,13 +105,13 @@ where
     ) -> Result<(), MarketplaceError> {
         self.check_owner(contract_address, token_id.clone())?;
 
-        // TODO check what happens if key is not in collection.
         self.data::<Data>()
             .items
             .remove(&(contract_address, token_id));
         Ok(())
     }
 
+    // TODO reentrancy check?
     default fn buy(
         &mut self,
         contract_address: AccountId,
@@ -136,18 +148,29 @@ where
                 .checked_sub(author_royalty)
                 .unwrap_or_default();
 
-            if let Some(token_owner) = PSP34Ref::owner_of(&contract_address, token_id) {
-                Self::env()
-                    .transfer(token_owner, seller_fee)
-                    .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
-                Self::env()
-                    .transfer(self.data::<Data>().market_fee_recipient, marketplace_fee)
-                    .map_err(|_| MarketplaceError::TransferToMarketplaceFailed)?;
-                Self::env()
-                    .transfer(collection.royalty_receiver, author_royalty)
-                    .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
+            if let Some(token_owner) = PSP34Ref::owner_of(&contract_address, token_id.clone()) {
+                let caller = Self::env().caller();
+                if PSP34Ref::transfer(
+                    &contract_address,
+                    caller,
+                    token_id,
+                    ink_prelude::vec::Vec::new(),
+                ) == Ok(())
+                {
+                    Self::env()
+                        .transfer(token_owner, seller_fee)
+                        .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
+                    Self::env()
+                        .transfer(self.data::<Data>().market_fee_recipient, marketplace_fee)
+                        .map_err(|_| MarketplaceError::TransferToMarketplaceFailed)?;
+                    Self::env()
+                        .transfer(collection.royalty_receiver, author_royalty)
+                        .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
 
-                return Ok(())
+                    return Ok(())
+                } else {
+                    return Err(MarketplaceError::UnableToTransferToken)
+                }
             } else {
                 return Err(MarketplaceError::NotOwner)
             }
@@ -165,7 +188,8 @@ where
         let max_fee = self.data::<Data>().max_fee;
         self.check_fee(royalty, max_fee)?;
 
-        // TODO check owner
+        // TODO check contract owner or marketplace owner
+        // PSP34Ref::owner()
 
         if self
             .data::<Data>()
@@ -180,7 +204,7 @@ where
                 &RegisteredCollection {
                     royalty_receiver,
                     royalty,
-                    metadata: String::from(""),
+                    marketplace_ipfs: String::from(""),
                 },
             );
 
@@ -219,8 +243,30 @@ where
         None
     }
 
-    default fn set_contract_metadata(&mut self, ipfs: String) -> Result<(), MarketplaceError> {
-        Ok(())
+    #[modifiers(only_owner)]
+    default fn set_contract_metadata(
+        &mut self,
+        contract_address: AccountId,
+        ipfs: String,
+    ) -> Result<(), MarketplaceError> {
+        if let Some(collection) = self
+            .data::<Data>()
+            .registered_contracts
+            .get(&(contract_address))
+        {
+            self.data::<Data>().registered_contracts.insert(
+                &contract_address,
+                &RegisteredCollection {
+                    royalty_receiver: collection.royalty_receiver,
+                    marketplace_ipfs: ipfs,
+                    royalty: collection.royalty,
+                },
+            );
+
+            return Ok(());
+        } else {
+            return Err(MarketplaceError::NotRegisteredContract);
+        }
     }
 
     default fn get_fee_recipient(&self) -> AccountId {
