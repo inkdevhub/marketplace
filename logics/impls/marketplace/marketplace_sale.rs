@@ -75,7 +75,7 @@ where
 
     default fn add_new_psp34_hash(&mut self, hash: Hash) -> Result<(), MarketplaceError> {
         todo!();
-    }   
+    }
 
     default fn list(
         &mut self,
@@ -263,9 +263,9 @@ where
                 },
             );
 
-            return Ok(());
+            return Ok(())
         } else {
-            return Err(MarketplaceError::NotRegisteredContract);
+            return Err(MarketplaceError::NotRegisteredContract)
         }
     }
 

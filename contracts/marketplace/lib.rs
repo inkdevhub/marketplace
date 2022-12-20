@@ -6,7 +6,10 @@ pub mod marketplace {
     use ink_storage::traits::SpreadAllocate;
     use openbrush::{
         contracts::ownable::*,
-        traits::Storage,
+        traits::{
+            Storage,
+            String,
+        },
     };
     use pallet_marketplace::{
         impls::marketplace::*,
@@ -133,7 +136,7 @@ pub mod marketplace {
             let contract = marketplace.get_contract(contract_address()).unwrap();
             assert_eq!(contract.royalty_receiver, fee_recipient());
             assert_eq!(contract.royalty, 999);
-            assert_eq!(contract.metadata, String::from(""));
+            assert_eq!(contract.marketplace_ipfs, String::from(""));
         }
 
         #[ink::test]
