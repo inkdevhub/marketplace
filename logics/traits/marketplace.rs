@@ -19,7 +19,10 @@ pub trait MarketplaceSale {
     fn factory(&mut self, marketplace_ipfs: String) -> Result<(), MarketplaceError>;
 
     #[ink(message)]
-    fn add_new_psp34_hash(&mut self, hash: Hash) -> Result<(), MarketplaceError>;
+    fn set_nft_contract_hash(&mut self, contract_hash: Hash) -> Result<(), MarketplaceError>;
+
+    #[ink(message)]
+    fn nft_contract_hash(&self) -> Hash;
 
     /// Create NFT item sale on the marketplace.
     #[ink(message)]

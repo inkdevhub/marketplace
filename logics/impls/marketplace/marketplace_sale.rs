@@ -74,8 +74,18 @@ where
         Ok(())
     }
 
-    default fn add_new_psp34_hash(&mut self, hash: Hash) -> Result<(), MarketplaceError> {
-        todo!();
+    #[modifiers(only_owner)]
+    default fn set_nft_contract_hash(
+        &mut self,
+        contract_hash: Hash,
+    ) -> Result<(), MarketplaceError> {
+        self.data::<Data>().nft_contract_hash = contract_hash;
+
+        Ok(())
+    }
+
+    default fn nft_contract_hash(&self) -> Hash {
+        self.data::<Data>().nft_contract_hash
     }
 
     default fn list(

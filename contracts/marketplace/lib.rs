@@ -9,10 +9,7 @@ pub mod marketplace {
             ownable::*,
             reentrancy_guard::*,
         },
-        traits::{
-            Storage,
-            String,
-        },
+        traits::Storage,
     };
     use pallet_marketplace::{
         impls::marketplace::*,
@@ -54,7 +51,10 @@ pub mod marketplace {
         use crate::marketplace::MarketplaceContract;
         use ink_env::test;
         use ink_lang as ink;
-        use openbrush::contracts::psp34::Id;
+        use openbrush::{
+            contracts::psp34::Id,
+            traits::String,
+        };
         use pallet_marketplace::impls::marketplace::types::MarketplaceError;
 
         #[ink::test]

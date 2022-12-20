@@ -1,3 +1,4 @@
+use ink_env::Hash;
 use ink_storage::traits::{
     PackedLayout,
     SpreadLayout,
@@ -30,6 +31,7 @@ pub struct Data {
     pub fee: u16,
     pub max_fee: u16,
     pub market_fee_recipient: AccountId,
+    pub nft_contract_hash: Hash,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]

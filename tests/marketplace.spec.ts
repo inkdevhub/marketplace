@@ -1,5 +1,5 @@
 import '@polkadot/api-augment';
-import { expect, use } from 'chai';
+import { assert, expect, use } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import { encodeAddress } from '@polkadot/keyring';
 import { FrameSystemAccountInfo } from '@polkadot/types/lookup';
@@ -166,6 +166,29 @@ describe('Marketplace tests', () => {
     const approveResult = await marketplace.withSigner(deployer).query.setContractMetadata(psp34.address, marketplace_ipfs.split(''), { gasLimit: gas });
 
     expect(approveResult.value.err.hasOwnProperty('notRegisteredContract')).to.be.true;
+  });
+
+  it('setNftContractHash works', async () => {
+    await setup();
+    await registerContract(bob);
+    const hash = string2ascii('h'.repeat(32));
+
+    const gas = (await marketplace.withSigner(deployer).query.setNftContractHash(hash)).gasRequired;
+    await marketplace.withSigner(deployer).tx.setNftContractHash(hash, {gasLimit: gas});
+
+    const hashValue = await marketplace.query.nftContractHash();
+    expect(hashValue.value).to.be.equal(toHex(hash));
+  });
+
+  it('setNftContractHash fails if not an owner', async () => {
+    await setup();
+    await registerContract(bob);
+    const hash = string2ascii('h'.repeat(32));
+
+    const gas = (await marketplace.withSigner(bob).query.setNftContractHash(hash)).gasRequired;
+    const result = await marketplace.withSigner(bob).query.setNftContractHash(hash, {gasLimit: gas});
+
+    expect(result.value.err.ownableError).to.equal('CallerIsNotOwner');
   });
 
   // Helper function to mint a token.
