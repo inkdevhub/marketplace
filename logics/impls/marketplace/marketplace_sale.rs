@@ -66,11 +66,26 @@ impl<T> MarketplaceSale for T
 where
     T: Storage<Data> + Storage<ownable::Data> + Storage<reentrancy_guard::Data>,
 {
-    default fn factory(&mut self, marketplace_ipfs: String) -> Result<(), MarketplaceError> {
+    default fn factory(
+        &mut self,
+        marketplace_ipfs: String,
+        nft_name: String,
+        nft_symbol: String,
+        nft_base_uri: String,
+        nft_max_supply: u64,
+        nft_price_per_mint: Balance,
+    ) -> Result<(), MarketplaceError> {
         // TODO implement
         // check_hash_exists
-        // create a new psp34/remark contract
-        // extend input parameters to fit nft contract construsctor.
+        // create a new psp34/remark contract instance
+        // extend input parameters to fit nft contract constructor.
+
+        if self.data::<Data>().nft_contract_hash == Hash::default() {
+            return Err(MarketplaceError::NftContractHashNotSet)
+        }
+
+        // let nft = PSP34Ref::new(nft_name, nft_symbol, nft_base_uri, nft_max_supply, nft_price_per_mint).endowement(0);
+
         Ok(())
     }
 
@@ -94,19 +109,15 @@ where
         token_id: Id,
         price: Balance,
     ) -> Result<(), MarketplaceError> {
-        match self.check_owner(contract_address, token_id.clone()) {
-            Ok(()) => {
-                self.data::<Data>().items.insert(
-                    &(contract_address, token_id),
-                    &Item {
-                        owner: Self::env().caller(),
-                        price,
-                    },
-                );
-                Ok(())
-            }
-            Err(e) => Err(e),
-        }
+        self.check_owner(contract_address, token_id.clone())?;
+        self.data::<Data>().items.insert(
+            &(contract_address, token_id),
+            &Item {
+                owner: Self::env().caller(),
+                price,
+            },
+        );
+        Ok(())
     }
 
     default fn unlist(
@@ -199,8 +210,18 @@ where
         let max_fee = self.data::<Data>().max_fee;
         self.check_fee(royalty, max_fee)?;
 
-        // TODO check contract owner or marketplace owner
-        // PSP34Ref::owner()
+        // TODO use ensure! here.
+        let caller = Self::env().caller();
+        if self.data::<ownable::Data>().owner != caller {
+            return Err(MarketplaceError::NotOwner)
+        }
+
+        // TODO see how to check contract owner
+        // else {
+        //     if PSP34Ref::owner(&contract_address) != caller {
+        //         return Err(MarketplaceError::NotOwner)
+        //     }
+        // }
 
         if self
             .data::<Data>()

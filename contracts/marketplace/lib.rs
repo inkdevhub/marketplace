@@ -170,6 +170,16 @@ pub mod marketplace {
             );
         }
 
+        #[ink::test]
+        fn factory_fails_if_no_hash() {
+            let mut marketplace = init_contract();
+
+            assert_eq!(
+                marketplace.factory(String::from("test")),
+                Err(MarketplaceError::NftContractHashNotSet)
+            );
+        }
+
         fn init_contract() -> MarketplaceContract {
             MarketplaceContract::new(fee_recipient())
         }

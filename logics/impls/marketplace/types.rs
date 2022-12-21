@@ -61,6 +61,8 @@ pub enum MarketplaceError {
     FeeToHigh,
     /// Unable to transfer token to a new owner.
     UnableToTransferToken,
+    /// PSP23 contract hash was not set
+    NftContractHashNotSet,
 }
 
 #[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]

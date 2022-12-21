@@ -16,7 +16,15 @@ use openbrush::{
 pub trait MarketplaceSale {
     /// Add NFT contract to the marketplace.
     #[ink(message)]
-    fn factory(&mut self, marketplace_ipfs: String) -> Result<(), MarketplaceError>;
+    fn factory(
+        &mut self,
+        marketplace_ipfs: String,
+        nft_name: String,
+        nft_symbol: String,
+        nft_base_uri: String,
+        nft_max_supply: u64,
+        nft_price_per_mint: Balance,
+    ) -> Result<(), MarketplaceError>;
 
     #[ink(message)]
     fn set_nft_contract_hash(&mut self, contract_hash: Hash) -> Result<(), MarketplaceError>;
