@@ -42,9 +42,8 @@ use openbrush::{
         String,
     },
 };
-
+use nft::shiden34::Shiden34Contract;
 use super::types::RegisteredCollection;
-// use shiden34::shiden34::Shiden34Contract;
 
 pub trait Internal {
     /// Checks if contract caller is an token owner
@@ -85,13 +84,13 @@ where
             return Err(MarketplaceError::NftContractHashNotSet)
         }
 
-        // let nft = Shiden34Contract::new(
-        //     nft_name,
-        //     nft_symbol,
-        //     nft_base_uri,
-        //     nft_max_supply,
-        //     nft_price_per_mint,
-        // );
+        let nft = Shiden34Contract::new(
+            nft_name,
+            nft_symbol,
+            nft_base_uri,
+            nft_max_supply,
+            nft_price_per_mint,
+        );
 
         Ok(())
     }

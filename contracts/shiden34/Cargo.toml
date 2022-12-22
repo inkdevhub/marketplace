@@ -22,10 +22,13 @@ pallet_payable_mint = { version="0.2.0", git = "https://github.com/swanky-dapps/
 [lib]
 name = "nft"
 path = "lib.rs"
-crate-type = [
-	# Used for normal contract Wasm blobs.
-	"cdylib",
-]
+# if this is uncommented marketplace_sale can't find the package.
+# default crate-type is bin
+# TODO see https://doc.rust-lang.org/reference/linkage.html for details.
+# crate-type = [
+# 	# Used for normal contract Wasm blobs.
+# 	"cdylib",
+# ]
 
 [features]
 default = ["std"]
