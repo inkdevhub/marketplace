@@ -42,7 +42,7 @@ use openbrush::{
         String,
     },
 };
-use nft::shiden34::Shiden34Contract;
+use shiden34::shiden34::Shiden34Contract;
 use super::types::RegisteredCollection;
 
 pub trait Internal {

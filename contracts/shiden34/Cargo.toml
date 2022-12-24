@@ -1,5 +1,5 @@
 [package]
-name = "nft"
+name = "shiden34"
 version = "0.2.0"
 authors = ["Stake Technologies <devops@stake.co.jp>"]
 edition = "2021"
@@ -16,11 +16,11 @@ scale = { package = "parity-scale-codec", version = "3", default-features = fals
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 
 openbrush = { tag = "v2.3.0", git = "https://github.com/Supercolony-net/openbrush-contracts", default-features = false, features = ["ownable", "psp34", "reentrancy_guard"] }
-pallet_payable_mint = { version="0.2.0", git = "https://github.com/swanky-dapps/nft" }
+pallet_payable_mint = { version="0.2.0", git = "https://github.com/swanky-dapps/nft", default-features = false }
 
 
 [lib]
-name = "nft"
+name = "shiden34"
 path = "lib.rs"
 # if this is uncommented marketplace_sale can't find the package.
 # default crate-type is bin
