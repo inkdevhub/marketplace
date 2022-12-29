@@ -21,6 +21,7 @@
 
 use super::types::RegisteredCollection;
 use crate::{
+    ensure,
     impls::marketplace::types::{
         Data,
         Item,
@@ -30,7 +31,7 @@ use crate::{
 };
 use ink_env::{
     hash::Blake2x256,
-    Hash, call,
+    Hash,
 };
 use ink_lang::ToAccountId;
 use openbrush::{
@@ -190,10 +191,7 @@ where
 
             if let Some(token_owner) = PSP34Ref::owner_of(&contract_address, token_id.clone()) {
                 let caller = Self::env().caller();
-
-                if token_owner == caller {
-                    return Err(MarketplaceError::AlreadyOwner);
-                }
+                ensure!(token_owner != caller, MarketplaceError::AlreadyOwner);
 
                 if PSP34Ref::transfer(
                     &contract_address,
@@ -233,7 +231,6 @@ where
         let max_fee = self.data::<Data>().max_fee;
         self.check_fee(royalty, max_fee)?;
 
-        // TODO use ensure! here.
         let caller = Self::env().caller();
         if self.data::<ownable::Data>().owner != caller {
             return Err(MarketplaceError::NotOwner)
@@ -373,17 +370,13 @@ where
         transfered_value: Balance,
         price: Balance,
     ) -> Result<(), MarketplaceError> {
-        if transfered_value < price {
-            return Err(MarketplaceError::BadBuyValue)
-        }
-
+        ensure!(transfered_value >= price, MarketplaceError::BadBuyValue);
+        
         Ok(())
     }
 
     default fn check_fee(&self, fee: u16, max_fee: u16) -> Result<(), MarketplaceError> {
-        if fee > max_fee {
-            return Err(MarketplaceError::FeeToHigh)
-        }
+        ensure!(fee <= max_fee, MarketplaceError::FeeToHigh);
 
         Ok(())
     }

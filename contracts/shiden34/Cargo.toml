@@ -23,7 +23,6 @@ pallet_payable_mint = { version="0.2.0", git = "https://github.com/swanky-dapps/
 name = "shiden34"
 path = "lib.rs"
 crate-type = [
-	# Used for normal contract Wasm blobs.
 	"cdylib",
     "rlib",
 ]
