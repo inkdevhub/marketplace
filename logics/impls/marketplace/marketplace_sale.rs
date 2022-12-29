@@ -30,7 +30,7 @@ use crate::{
 };
 use ink_env::{
     hash::Blake2x256,
-    Hash,
+    Hash, call,
 };
 use ink_lang::ToAccountId;
 use openbrush::{
@@ -79,11 +79,7 @@ where
         nft_max_supply: u64,
         nft_price_per_mint: Balance,
     ) -> Result<AccountId, MarketplaceError> {
-        // TODO implement
-        // check_hash_exists
-        // create a new psp34/remark contract instance
-        // extend input parameters to fit nft contract constructor.
-
+        // TODO marketplace_ipfs
         let contract_hash = self.data::<Data>().nft_contract_hash;
         if contract_hash == Hash::default() {
             return Err(MarketplaceError::NftContractHashNotSet)
@@ -167,7 +163,6 @@ where
             .items
             .get(&(contract_address, token_id.clone()))
         {
-            // TODO what if user alrady owns a token and wants to buy it again.
             let value = Self::env().transferred_value();
             self.check_value(value, item.price)?;
 
@@ -195,6 +190,11 @@ where
 
             if let Some(token_owner) = PSP34Ref::owner_of(&contract_address, token_id.clone()) {
                 let caller = Self::env().caller();
+
+                if token_owner == caller {
+                    return Err(MarketplaceError::AlreadyOwner);
+                }
+
                 if PSP34Ref::transfer(
                     &contract_address,
                     caller,

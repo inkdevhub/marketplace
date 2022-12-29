@@ -66,6 +66,8 @@ pub enum MarketplaceError {
     NftContractHashNotSet,
     /// Factory method was unable to initiate PSP34 contract.
     PSP34InstantiationFailed,
+    // Buyer already owns token.
+    AlreadyOwner,
 }
 
 #[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]

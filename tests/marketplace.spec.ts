@@ -157,6 +157,13 @@ describe('Marketplace tests', () => {
     expect((await psp34.query.ownerOf({ u64: 1 })).value).to.equal(bob.address);
     // Check if allowance is unset.
     expect((await psp34.query.allowance(charlie.address, marketplace.address, { u64: 1 })).value).to.equal(false);
+
+    // Try to buy the same token again
+    const reBuyResult = await marketplace.withSigner(bob).query.buy(
+      psp34.address, 
+      {u64: 1},
+      { gasLimit: gasRequired * 2n, value: new BN('100000000000000000000') });
+      expect(reBuyResult.value.err.hasOwnProperty('alreadyOwner')).to.be.true;
   });
 
   it('setContractMetadata works', async () => {
