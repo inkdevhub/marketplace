@@ -16,7 +16,7 @@ scale = { package = "parity-scale-codec", version = "3", default-features = fals
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 
 openbrush = { tag = "v2.3.0", git = "https://github.com/Supercolony-net/openbrush-contracts", default-features = false, features = ["ownable", "psp34", "reentrancy_guard"] }
-shiden34 = { path = "../contracts/shiden34", default-features = false }
+shiden34 = { path = "../contracts/shiden34", default-features = false, features = ["ink-as-dependency"] }
 
 [lib]
 path = "lib.rs"

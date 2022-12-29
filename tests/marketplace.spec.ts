@@ -8,11 +8,14 @@ import Market_factory from '../types/constructors/marketplace';
 import Market from '../types/contracts/marketplace';
 import TestPSP34_factory from '../types/constructors/test_psp34';
 import TestPSP34 from '../types/contracts/test_psp34';
+import Shiden34_Factory from '../types/constructors/shiden34';
+import Shiden34 from '../types/contracts/shiden34';
 
 import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 // import { AccountId } from '../types/types-arguments/marketplace_contract';
 import { ResultBuilder, ReturnNumber } from '@supercolony/typechain-types';
+import { Hash } from 'types-arguments/marketplace';
 
 use(chaiAsPromised);
 
@@ -32,12 +35,14 @@ const keyring = new Keyring({ type: 'sr25519' });
 describe('Marketplace tests', () => {
   let marketplaceFactory: Market_factory;
   let psp34Factory: TestPSP34_factory;
+  let shiden34Factory: Shiden34_Factory;
   let api: ApiPromise;
   let deployer: KeyringPair;
   let bob: KeyringPair;
   let charlie: KeyringPair;
   let marketplace: Market;
   let psp34: TestPSP34;
+  let shiden34: Shiden34;
 
   const gasLimit = 18750000000;
   const ZERO_ADDRESS = encodeAddress(
@@ -52,8 +57,16 @@ describe('Marketplace tests', () => {
     charlie = keyring.addFromUri('//Charlie');
     marketplaceFactory = new Market_factory(api, deployer);
     psp34Factory = new TestPSP34_factory(api, deployer);
+    shiden34Factory = new Shiden34_Factory(api, deployer);
     marketplace = new Market((await marketplaceFactory.new(deployer.address)).address, deployer, api);
     psp34 = new TestPSP34((await psp34Factory.new()).address, deployer, api);
+    shiden34 = new Shiden34((await shiden34Factory.new(
+      'default'.split(''),
+      'DFT'.split(''),
+      'uri'.split(''),
+      1000,
+      1
+    )).address, deployer, api);
   }
 
   it('setup and mint works', async () => {
@@ -189,6 +202,35 @@ describe('Marketplace tests', () => {
     const result = await marketplace.withSigner(bob).query.setNftContractHash(hash, {gasLimit: gas});
 
     expect(result.value.err.ownableError).to.equal('CallerIsNotOwner');
+  });
+
+  it('factory works', async () => {
+    await setup();
+    const marketplace_ipfs = 'ipfs://test';
+    const siden34Hash: Hash = shiden34.abi.info.source.wasmHash.toHex();
+
+    const hashGas = (await marketplace.withSigner(deployer).query.setNftContractHash(siden34Hash)).gasRequired;
+    await marketplace.withSigner(deployer).tx.setNftContractHash(siden34Hash, { gasLimit: hashGas });
+    
+    const gas = (await marketplace.withSigner(bob).query.factory(
+      marketplace_ipfs.split(''),
+      'testNft'.split(''),
+      'TST'.split(''),
+      'nftUri'.split(''),
+      1000,
+      100
+    )).gasRequired;
+    const factoryResult = await marketplace.withSigner(bob).tx.factory(
+      marketplace_ipfs.split(''),
+      'testNft'.split(''),
+      'TST'.split(''),
+      'nftUri'.split(''),
+      1000,
+      100,
+      {gasLimit: gas});
+    
+    const shiden34Address = factoryResult.result.status.asInBlock.toHuman();
+    expect(shiden34Address).is.not.empty;
   });
 
   // Helper function to mint a token.

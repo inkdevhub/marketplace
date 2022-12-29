@@ -19,6 +19,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+use super::types::RegisteredCollection;
 use crate::{
     impls::marketplace::types::{
         Data,
@@ -27,7 +28,11 @@ use crate::{
     },
     traits::marketplace::MarketplaceSale,
 };
-use ink_env::Hash;
+use ink_env::{
+    hash::Blake2x256,
+    Hash,
+};
+use ink_lang::ToAccountId;
 use openbrush::{
     contracts::{
         ownable::*,
@@ -42,8 +47,7 @@ use openbrush::{
         String,
     },
 };
-use shiden34::shiden34::Shiden34Contract;
-use super::types::RegisteredCollection;
+use shiden34::shiden34::Shiden34ContractRef;
 
 pub trait Internal {
     /// Checks if contract caller is an token owner
@@ -74,25 +78,38 @@ where
         nft_base_uri: String,
         nft_max_supply: u64,
         nft_price_per_mint: Balance,
-    ) -> Result<(), MarketplaceError> {
+    ) -> Result<AccountId, MarketplaceError> {
         // TODO implement
         // check_hash_exists
         // create a new psp34/remark contract instance
         // extend input parameters to fit nft contract constructor.
 
-        if self.data::<Data>().nft_contract_hash == Hash::default() {
+        let contract_hash = self.data::<Data>().nft_contract_hash;
+        if contract_hash == Hash::default() {
             return Err(MarketplaceError::NftContractHashNotSet)
         }
 
-        let nft = Shiden34Contract::new(
+        // Generate salt
+        let nonce = self.data::<Data>().nonce + 1;
+        let caller = Self::env().caller();
+        let salt = Self::env().hash_encoded::<Blake2x256, _>(&(caller, nonce));
+
+        let nft = Shiden34ContractRef::new(
             nft_name,
             nft_symbol,
             nft_base_uri,
             nft_max_supply,
             nft_price_per_mint,
-        );
+        )
+        .endowment(0)
+        .code_hash(contract_hash)
+        .salt_bytes(&salt[..4])
+        .instantiate()
+        .map_err(|_| MarketplaceError::PSP34InstantiationFailed)?;
 
-        Ok(())
+        self.data::<Data>().nonce = nonce;
+
+        Ok(nft.to_account_id())
     }
 
     #[modifiers(only_owner)]

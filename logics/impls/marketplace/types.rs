@@ -32,6 +32,7 @@ pub struct Data {
     pub max_fee: u16,
     pub market_fee_recipient: AccountId,
     pub nft_contract_hash: Hash,
+    pub nonce: u64,
 }
 
 #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -63,6 +64,8 @@ pub enum MarketplaceError {
     UnableToTransferToken,
     /// PSP23 contract hash was not set
     NftContractHashNotSet,
+    /// Factory method was unable to initiate PSP34 contract.
+    PSP34InstantiationFailed,
 }
 
 #[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]

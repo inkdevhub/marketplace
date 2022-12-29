@@ -24,7 +24,7 @@ pub trait MarketplaceSale {
         nft_base_uri: String,
         nft_max_supply: u64,
         nft_price_per_mint: Balance,
-    ) -> Result<(), MarketplaceError>;
+    ) -> Result<AccountId, MarketplaceError>;
 
     #[ink(message)]
     fn set_nft_contract_hash(&mut self, contract_hash: Hash) -> Result<(), MarketplaceError>;
