@@ -132,8 +132,6 @@ describe('Marketplace tests', () => {
     const bobOriginalBalance = await getBalance(bob);
     const charlieOriginalBalance = await getBalance(charlie);
 
-    console.log(deployerOriginalBalance.toHuman(), bobOriginalBalance.toHuman(), charlieOriginalBalance.toHuman());
-
     // Buy token
     const { gasRequired } = await marketplace.withSigner(bob).query.buy(psp34.address, {u64: 1});
     const buyResult = await marketplace.withSigner(bob).tx.buy(
@@ -147,13 +145,12 @@ describe('Marketplace tests', () => {
     const deployerBalance = await getBalance(deployer);
     const bobBalance = await getBalance(bob);
     const charlieBalance = await getBalance(charlie);
-    console.log(deployerBalance.toHuman(), bobBalance.toHuman(), charlieBalance.toHuman());
     
     // Check the marketplace fee receiver balance. ATM all royalties go to deployer.
     expect(deployerBalance.eq(deployerOriginalBalance.add(new BN('2000000000000000000')))).to.be.true;
     // Check seller's balance. Should be increased by price - fees
     expect(charlieBalance.toString()).to.be.equal(charlieOriginalBalance.add(new BN('98000000000000000000')).toString());
-    // Check a new token owner
+    // Check the token owner.
     expect((await psp34.query.ownerOf({ u64: 1 })).value).to.equal(bob.address);
     // Check if allowance is unset.
     expect((await psp34.query.allowance(charlie.address, marketplace.address, { u64: 1 })).value).to.equal(false);
@@ -219,25 +216,35 @@ describe('Marketplace tests', () => {
     const hashGas = (await marketplace.withSigner(deployer).query.setNftContractHash(siden34Hash)).gasRequired;
     await marketplace.withSigner(deployer).tx.setNftContractHash(siden34Hash, { gasLimit: hashGas });
     
-    const gas = (await marketplace.withSigner(bob).query.factory(
-      marketplace_ipfs.split(''),
-      'testNft'.split(''),
-      'TST'.split(''),
-      'nftUri'.split(''),
+    const gas = (await marketplace.withSigner(deployer).query.factory(
+      string2ascii(marketplace_ipfs),
+      string2ascii('testNft'),
+      string2ascii('TST'),
+      string2ascii('nftUri'),
       1000,
       100
     )).gasRequired;
-    const factoryResult = await marketplace.withSigner(bob).tx.factory(
-      marketplace_ipfs.split(''),
-      'testNft'.split(''),
-      'TST'.split(''),
-      'nftUri'.split(''),
+    const factoryResult = await marketplace.withSigner(deployer).tx.factory(
+      string2ascii(marketplace_ipfs),
+      string2ascii('testNft'),
+      string2ascii('TST'),
+      string2ascii('nftUri'),
       1000,
       100,
       {gasLimit: gas});
     
-    const shiden34Address = factoryResult.result.status.asInBlock.toHuman();
+    // Check if Shiden34 contract has been deployed
+    const instatiatedEvent = factoryResult.result.events.find(x => x.event.method === 'Instantiated' && x.event.section === 'contracts');
+    expect(instatiatedEvent).is.not.empty;
+    
+    const shiden34Address = instatiatedEvent.event.data['contract'];
     expect(shiden34Address).is.not.empty;
+
+    // Check if deployed contract has been registered
+    const registerCheckResult = await marketplace.query.getContract(shiden34Address);
+    expect(registerCheckResult).is.not.empty;
+    expect(registerCheckResult.value.royalty).to.be.equal(100);
+    expect(registerCheckResult.value.marketplaceIpfs).to.be.equal(toHex(string2ascii(marketplace_ipfs)));
   });
 
   // Helper function to mint a token.
@@ -250,8 +257,9 @@ describe('Marketplace tests', () => {
 
   // Helper function to register contract.
   async function registerContract(signer:KeyringPair) {
-    const { gasRequired } = await marketplace.withSigner(signer).query.register(psp34.address, signer.address, 100);
-    const registerResult = await marketplace.withSigner(signer).tx.register(psp34.address, signer.address, 100, { gasLimit: gasRequired * 2n });
+    const ipfs = 'ipfs'.split('');
+    const { gasRequired } = await marketplace.withSigner(signer).query.register(psp34.address, signer.address, 100, ipfs);
+    const registerResult = await marketplace.withSigner(signer).tx.register(psp34.address, signer.address, 100, ipfs, { gasLimit: gasRequired * 2n });
     expect(registerResult.result?.isInBlock).to.be.true;
     // expect((await marketplace.query.getPrice(psp34.address, {u64: 1})).value).to.equal(100);
   }

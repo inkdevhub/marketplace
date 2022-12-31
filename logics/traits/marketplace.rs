@@ -57,6 +57,7 @@ pub trait MarketplaceSale {
         contract_address: AccountId,
         royalty_receiver: AccountId,
         royalty: u16,
+        marketplace_ipfs: String,
     ) -> Result<(), MarketplaceError>;
 
     #[ink(message)]

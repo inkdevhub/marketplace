@@ -80,7 +80,6 @@ where
         nft_max_supply: u64,
         nft_price_per_mint: Balance,
     ) -> Result<AccountId, MarketplaceError> {
-        // TODO marketplace_ipfs
         let contract_hash = self.data::<Data>().nft_contract_hash;
         if contract_hash == Hash::default() {
             return Err(MarketplaceError::NftContractHashNotSet)
@@ -104,9 +103,13 @@ where
         .instantiate()
         .map_err(|_| MarketplaceError::PSP34InstantiationFailed)?;
 
+        let contract_address = nft.to_account_id();
+        // TODO pass royalty amount.
+        MarketplaceSale::register(self, contract_address, caller, 100, marketplace_ipfs)?;
+
         self.data::<Data>().nonce = nonce;
 
-        Ok(nft.to_account_id())
+        Ok(contract_address)
     }
 
     #[modifiers(only_owner)]
@@ -227,6 +230,7 @@ where
         contract_address: AccountId,
         royalty_receiver: AccountId,
         royalty: u16,
+        marketplace_ipfs: String,
     ) -> Result<(), MarketplaceError> {
         let max_fee = self.data::<Data>().max_fee;
         self.check_fee(royalty, max_fee)?;
@@ -256,7 +260,7 @@ where
                 &RegisteredCollection {
                     royalty_receiver,
                     royalty,
-                    marketplace_ipfs: String::from(""),
+                    marketplace_ipfs,
                 },
             );
 
@@ -371,7 +375,7 @@ where
         price: Balance,
     ) -> Result<(), MarketplaceError> {
         ensure!(transfered_value >= price, MarketplaceError::BadBuyValue);
-        
+
         Ok(())
     }
 

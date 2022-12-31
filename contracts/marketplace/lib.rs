@@ -134,38 +134,41 @@ pub mod marketplace {
         #[ink::test]
         fn register_contract_works() {
             let mut marketplace = init_contract();
+            let ipfs = String::from("ipfs");
 
             assert!(marketplace
-                .register(contract_address(), fee_recipient(), 999)
+                .register(contract_address(), fee_recipient(), 999, ipfs.clone())
                 .is_ok());
             let contract = marketplace.get_contract(contract_address()).unwrap();
             assert_eq!(contract.royalty_receiver, fee_recipient());
             assert_eq!(contract.royalty, 999);
-            assert_eq!(contract.marketplace_ipfs, String::from(""));
+            assert_eq!(contract.marketplace_ipfs, ipfs);
         }
 
         #[ink::test]
         fn register_fails_if_fee_too_high() {
             let mut marketplace = init_contract();
+            let ipfs = String::from("ipfs");
 
             assert_eq!(
-                marketplace.register(contract_address(), fee_recipient(), 1001),
+                marketplace.register(contract_address(), fee_recipient(), 1001, ipfs.clone()),
                 Err(MarketplaceError::FeeToHigh)
             );
             assert!(marketplace
-                .register(contract_address(), fee_recipient(), 999)
+                .register(contract_address(), fee_recipient(), 999, ipfs)
                 .is_ok());
         }
 
         #[ink::test]
         fn register_fails_if_contract_already_registered() {
             let mut marketplace = init_contract();
+            let ipfs = String::from("ipfs");
 
             assert!(marketplace
-                .register(contract_address(), fee_recipient(), 999)
+                .register(contract_address(), fee_recipient(), 999, ipfs.clone())
                 .is_ok());
             assert_eq!(
-                marketplace.register(contract_address(), fee_recipient(), 999),
+                marketplace.register(contract_address(), fee_recipient(), 999, ipfs),
                 Err(MarketplaceError::ContractAlreadyRegistered)
             );
         }
