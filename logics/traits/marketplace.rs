@@ -19,6 +19,8 @@ pub trait MarketplaceSale {
     fn factory(
         &mut self,
         marketplace_ipfs: String,
+        royalty_receiver: AccountId,
+        royalty: u16,
         nft_name: String,
         nft_symbol: String,
         nft_base_uri: String,

@@ -218,6 +218,8 @@ describe('Marketplace tests', () => {
     
     const gas = (await marketplace.withSigner(deployer).query.factory(
       string2ascii(marketplace_ipfs),
+      bob.address,
+      200,
       string2ascii('testNft'),
       string2ascii('TST'),
       string2ascii('nftUri'),
@@ -226,6 +228,8 @@ describe('Marketplace tests', () => {
     )).gasRequired;
     const factoryResult = await marketplace.withSigner(deployer).tx.factory(
       string2ascii(marketplace_ipfs),
+      bob.address,
+      200,
       string2ascii('testNft'),
       string2ascii('TST'),
       string2ascii('nftUri'),
@@ -243,7 +247,8 @@ describe('Marketplace tests', () => {
     // Check if deployed contract has been registered
     const registerCheckResult = await marketplace.query.getContract(shiden34Address);
     expect(registerCheckResult).is.not.empty;
-    expect(registerCheckResult.value.royalty).to.be.equal(100);
+    expect(registerCheckResult.value.royalty).to.be.equal(200);
+    expect(registerCheckResult.value.royaltyReceiver).to.be.equal(bob.address);
     expect(registerCheckResult.value.marketplaceIpfs).to.be.equal(toHex(string2ascii(marketplace_ipfs)));
   });
 

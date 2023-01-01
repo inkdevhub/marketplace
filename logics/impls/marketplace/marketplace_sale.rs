@@ -74,6 +74,8 @@ where
     default fn factory(
         &mut self,
         marketplace_ipfs: String,
+        royalty_receiver: AccountId,
+        royalty: u16,
         nft_name: String,
         nft_symbol: String,
         nft_base_uri: String,
@@ -104,8 +106,13 @@ where
         .map_err(|_| MarketplaceError::PSP34InstantiationFailed)?;
 
         let contract_address = nft.to_account_id();
-        // TODO pass royalty amount.
-        MarketplaceSale::register(self, contract_address, caller, 100, marketplace_ipfs)?;
+        MarketplaceSale::register(
+            self,
+            contract_address,
+            royalty_receiver,
+            royalty,
+            marketplace_ipfs,
+        )?;
 
         self.data::<Data>().nonce = nonce;
 
