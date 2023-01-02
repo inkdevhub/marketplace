@@ -106,13 +106,14 @@ where
         .map_err(|_| MarketplaceError::PSP34InstantiationFailed)?;
 
         let contract_address = nft.to_account_id();
-        MarketplaceSale::register(
-            self,
-            contract_address,
-            royalty_receiver,
-            royalty,
-            marketplace_ipfs,
-        )?;
+        self.data::<Data>().registered_contracts.insert(
+            &contract_address,
+            &RegisteredCollection {
+                royalty_receiver,
+                royalty,
+                marketplace_ipfs,
+            },
+        );
 
         self.data::<Data>().nonce = nonce;
 

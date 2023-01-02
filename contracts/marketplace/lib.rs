@@ -173,6 +173,30 @@ pub mod marketplace {
             );
         }
 
+        #[ink::test]
+        fn set_nft_contract_hash_works() {
+            let mut marketplace = init_contract();
+            let hash = Hash::try_from([1; 32]).unwrap();
+
+            assert!(marketplace.set_nft_contract_hash(hash).is_ok());
+            assert_eq!(marketplace.nft_contract_hash(), hash);
+        }
+
+        #[ink::test]
+        fn set_nft_contract_fails_if_not_owner() {
+            let mut marketplace = init_contract();
+            let hash = Hash::try_from([1; 32]).unwrap();
+            let accounts = default_accounts();
+            set_sender(accounts.bob);
+
+            assert_eq!(
+                marketplace.set_nft_contract_hash(hash),
+                Err(MarketplaceError::OwnableError(
+                    OwnableError::CallerIsNotOwner
+                ))
+            );
+        }
+
         // #[ink::test]
         // fn factory_fails_if_no_hash() {
         //     let mut marketplace = init_contract();
