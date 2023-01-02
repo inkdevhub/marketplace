@@ -86,6 +86,27 @@ describe('Marketplace tests', () => {
     expect((await marketplace.query.getMarketplaceFee()).value).to.equal(120);
   })
 
+  it('register contract works', async () => {
+    await setup();
+    await registerContract(deployer);
+
+    const contract = await marketplace.query.getContract(psp34.address);
+
+    expect(contract.value.royaltyReceiver).to.be.equal(deployer.address);
+    expect(contract.value.royalty).to.be.equal(100);
+    expect(contract.value.marketplaceIpfs).to.be.equal(toHex(string2ascii('ipfs')));
+  });
+
+  it('register contract fails if fee is too high', async () => {
+    await setup();
+
+    const ipfs = string2ascii('ipfs');
+    const { gasRequired } = await marketplace.withSigner(deployer).query.register(psp34.address, deployer.address, 10001, ipfs);
+    const registerResult = await marketplace.withSigner(deployer).query.register(psp34.address, deployer.address, 10001, ipfs, { gasLimit: gasRequired * 2n });
+
+    expect(registerResult.value.err.hasOwnProperty('feeTooHigh')).to.be.true;
+  });
+
   it('list / unlist works', async () => {
     await setup();
     await mintToken(bob);
@@ -262,11 +283,10 @@ describe('Marketplace tests', () => {
 
   // Helper function to register contract.
   async function registerContract(signer:KeyringPair) {
-    const ipfs = 'ipfs'.split('');
+    const ipfs = string2ascii('ipfs');
     const { gasRequired } = await marketplace.withSigner(signer).query.register(psp34.address, signer.address, 100, ipfs);
     const registerResult = await marketplace.withSigner(signer).tx.register(psp34.address, signer.address, 100, ipfs, { gasLimit: gasRequired * 2n });
     expect(registerResult.result?.isInBlock).to.be.true;
-    // expect((await marketplace.query.getPrice(psp34.address, {u64: 1})).value).to.equal(100);
   }
 
   // Helper function to list token for sale.

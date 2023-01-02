@@ -59,7 +59,7 @@ pub enum MarketplaceError {
     ///
     TransferToAuthorFailed,
     ContractAlreadyRegistered,
-    FeeToHigh,
+    FeeTooHigh,
     /// Unable to transfer token to a new owner.
     UnableToTransferToken,
     /// PSP23 contract hash was not set

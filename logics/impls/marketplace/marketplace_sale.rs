@@ -244,16 +244,13 @@ where
         self.check_fee(royalty, max_fee)?;
 
         let caller = Self::env().caller();
-        if self.data::<ownable::Data>().owner != caller {
+
+        // Check if caller is Marketplace owner of NFT owner.
+        if self.data::<ownable::Data>().owner != caller
+            && OwnableRef::owner(&contract_address) != caller
+        {
             return Err(MarketplaceError::NotOwner)
         }
-
-        // TODO see how to check contract owner
-        // else {
-        //     if PSP34Ref::owner(&contract_address) != caller {
-        //         return Err(MarketplaceError::NotOwner)
-        //     }
-        // }
 
         if self
             .data::<Data>()
@@ -388,7 +385,7 @@ where
     }
 
     default fn check_fee(&self, fee: u16, max_fee: u16) -> Result<(), MarketplaceError> {
-        ensure!(fee <= max_fee, MarketplaceError::FeeToHigh);
+        ensure!(fee <= max_fee, MarketplaceError::FeeTooHigh);
 
         Ok(())
     }

@@ -93,7 +93,7 @@ pub mod marketplace {
 
             assert_eq!(
                 marketplace.set_marketplace_fee(1001),
-                Err(MarketplaceError::FeeToHigh)
+                Err(MarketplaceError::FeeTooHigh)
             );
             assert!(marketplace.set_marketplace_fee(1000).is_ok());
         }
@@ -152,7 +152,7 @@ pub mod marketplace {
 
             assert_eq!(
                 marketplace.register(contract_address(), fee_recipient(), 1001, ipfs.clone()),
-                Err(MarketplaceError::FeeToHigh)
+                Err(MarketplaceError::FeeTooHigh)
             );
             assert!(marketplace
                 .register(contract_address(), fee_recipient(), 999, ipfs)
