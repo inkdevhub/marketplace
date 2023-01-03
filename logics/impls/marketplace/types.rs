@@ -70,8 +70,8 @@ pub enum MarketplaceError {
     PSP34InstantiationFailed,
     /// Buyer already owns token.
     AlreadyOwner,
-    /// Token owner can not be determined.
-    CanNotDetermineOwner,
+    /// Token does not exist.
+    TokenDoesNotExist,
 }
 
 #[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]

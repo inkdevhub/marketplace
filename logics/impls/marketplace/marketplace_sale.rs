@@ -177,7 +177,7 @@ where
             .ok_or(MarketplaceError::ItemNotListedForSale)?;
 
         let token_owner = PSP34Ref::owner_of(&contract_address, token_id.clone())
-            .ok_or(MarketplaceError::CanNotDetermineOwner)?;
+            .ok_or(MarketplaceError::TokenDoesNotExist)?;
 
         let value = Self::env().transferred_value();
         self.check_value(value, item.price)?;
@@ -205,7 +205,7 @@ where
         let caller = Self::env().caller();
         ensure!(token_owner != caller, MarketplaceError::AlreadyOwner);
 
-        match PSP34Ref::transfer(
+        return match PSP34Ref::transfer(
             &contract_address,
             caller,
             token_id,
@@ -221,10 +221,9 @@ where
                 Self::env()
                     .transfer(collection.royalty_receiver, author_royalty)
                     .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
-
-                return Ok(())
+                Ok(())
             }
-            _ => return Err(MarketplaceError::UnableToTransferToken),
+            Err(_e) => return Err(MarketplaceError::UnableToTransferToken),
         }
     }
 
@@ -355,16 +354,15 @@ where
         }
 
         let caller = Self::env().caller();
-        match PSP34Ref::owner_of(&contract_address, token_id.clone()) {
+        return match PSP34Ref::owner_of(&contract_address, token_id) {
             Some(token_owner) => {
                 if caller != token_owner {
-                    return Err(MarketplaceError::NotOwner)
+                    return Err(MarketplaceError::NotOwner);
                 }
+                Ok(())
             }
-            None => return Err(MarketplaceError::CanNotDetermineOwner),
+            None => return Err(MarketplaceError::TokenDoesNotExist),
         }
-
-        Ok(())
     }
 
     default fn check_value(
