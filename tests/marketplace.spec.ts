@@ -86,7 +86,7 @@ describe('Marketplace tests', () => {
     expect((await marketplace.query.getMarketplaceFee()).value).to.equal(120);
   })
 
-  it('register contract works', async () => {
+  it('register contract works for the Marketplace owner', async () => {
     await setup();
     await registerContract(deployer);
 

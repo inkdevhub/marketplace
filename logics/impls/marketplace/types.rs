@@ -54,11 +54,13 @@ pub enum MarketplaceError {
     BadBuyValue,
     /// Fee transfer to the marketplace failed.
     TransferToMarketplaceFailed,
-    /// Royalty transfer to the marketplace failed.
+    /// Fee transfer to the marketplace failed.
     TransferToOwnerFailed,
-    ///
+    /// Royalty transfer failed.
     TransferToAuthorFailed,
+    /// Contract has been alredy registered to the marketplace
     ContractAlreadyRegistered,
+    /// Fee required is too high.
     FeeTooHigh,
     /// Unable to transfer token to a new owner.
     UnableToTransferToken,
@@ -66,8 +68,10 @@ pub enum MarketplaceError {
     NftContractHashNotSet,
     /// Factory method was unable to initiate PSP34 contract.
     PSP34InstantiationFailed,
-    // Buyer already owns token.
+    /// Buyer already owns token.
     AlreadyOwner,
+    /// Token owner can not be determined.
+    CanNotDetermineOwner,
 }
 
 #[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]
