@@ -205,7 +205,7 @@ where
         let caller = Self::env().caller();
         ensure!(token_owner != caller, MarketplaceError::AlreadyOwner);
 
-        return match PSP34Ref::transfer(
+        match PSP34Ref::transfer(
             &contract_address,
             caller,
             token_id,
@@ -223,7 +223,7 @@ where
                     .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
                 Ok(())
             }
-            Err(_e) => return Err(MarketplaceError::UnableToTransferToken),
+            Err(_) => Err(MarketplaceError::UnableToTransferToken),
         }
     }
 
@@ -252,7 +252,7 @@ where
             .get(&contract_address)
             .is_some()
         {
-            return Err(MarketplaceError::ContractAlreadyRegistered)
+            Err(MarketplaceError::ContractAlreadyRegistered)
         } else {
             self.data::<Data>().registered_contracts.insert(
                 &contract_address,
@@ -263,7 +263,7 @@ where
                 },
             );
 
-            return Ok(())
+            Ok(())
         }
     }
 
@@ -354,14 +354,14 @@ where
         }
 
         let caller = Self::env().caller();
-        return match PSP34Ref::owner_of(&contract_address, token_id) {
+        match PSP34Ref::owner_of(&contract_address, token_id) {
             Some(token_owner) => {
                 if caller != token_owner {
                     return Err(MarketplaceError::NotOwner);
                 }
                 Ok(())
             }
-            None => return Err(MarketplaceError::TokenDoesNotExist),
+            None => Err(MarketplaceError::TokenDoesNotExist),
         }
     }
 
