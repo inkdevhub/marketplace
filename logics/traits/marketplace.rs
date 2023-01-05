@@ -28,13 +28,15 @@ pub trait MarketplaceSale {
         nft_price_per_mint: Balance,
     ) -> Result<AccountId, MarketplaceError>;
 
+    /// Sets a hash of a Shiden34 contract to be instantiated by factory call.
     #[ink(message)]
     fn set_nft_contract_hash(&mut self, contract_hash: Hash) -> Result<(), MarketplaceError>;
 
+    /// Gets Shiden34 contract hash.
     #[ink(message)]
     fn nft_contract_hash(&self) -> Hash;
 
-    /// Create NFT item sale on the marketplace.
+    /// Creates NFT item sale on the marketplace.
     #[ink(message)]
     fn list(
         &mut self,
@@ -48,7 +50,7 @@ pub trait MarketplaceSale {
     fn unlist(&mut self, contract_address: AccountId, token_id: Id)
         -> Result<(), MarketplaceError>;
 
-    /// Buy NFT item from the marketplace.
+    /// Buys NFT item from the marketplace.
     #[ink(message, payable)]
     fn buy(&mut self, contract_address: AccountId, token_id: Id) -> Result<(), MarketplaceError>;
 
@@ -62,6 +64,7 @@ pub trait MarketplaceSale {
         marketplace_ipfs: String,
     ) -> Result<(), MarketplaceError>;
 
+    /// Gets registered contract.
     #[ink(message)]
     fn get_contract(&self, contract_address: AccountId) -> Option<RegisteredCollection>;
 
@@ -77,7 +80,7 @@ pub trait MarketplaceSale {
     #[ink(message)]
     fn get_max_fee(&self) -> u16;
 
-    /// Checks if NFT token is listed on the marketplace.
+    /// Checks if NFT token is listed on the marketplace and returns token price.
     #[ink(message)]
     fn get_price(&self, contract_address: AccountId, token_id: Id) -> Option<Balance>;
 
@@ -89,11 +92,11 @@ pub trait MarketplaceSale {
         ipfs: String,
     ) -> Result<(), MarketplaceError>;
 
-    /// Gets the marketplace fee recipient
+    /// Gets the marketplace fee recipient.
     #[ink(message)]
     fn get_fee_recipient(&self) -> AccountId;
 
-    /// Sets the marketplace fee recipient
+    /// Sets the marketplace fee recipient.
     #[ink(message)]
     fn set_fee_recipient(&mut self, fee_recipient: AccountId) -> Result<(), MarketplaceError>;
 }

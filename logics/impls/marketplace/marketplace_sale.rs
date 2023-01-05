@@ -356,9 +356,7 @@ where
         let caller = Self::env().caller();
         match PSP34Ref::owner_of(&contract_address, token_id) {
             Some(token_owner) => {
-                if caller != token_owner {
-                    return Err(MarketplaceError::NotOwner);
-                }
+                ensure!(caller == token_owner, MarketplaceError::NotOwner);
                 Ok(())
             }
             None => Err(MarketplaceError::TokenDoesNotExist),
