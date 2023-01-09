@@ -14,7 +14,7 @@ use openbrush::{
 
 #[openbrush::trait_definition]
 pub trait MarketplaceSale {
-    /// Add NFT contract to the marketplace.
+    /// Adds a NFT contract to the marketplace.
     #[ink(message)]
     fn factory(
         &mut self,
@@ -36,7 +36,7 @@ pub trait MarketplaceSale {
     #[ink(message)]
     fn nft_contract_hash(&self) -> Hash;
 
-    /// Creates NFT item sale on the marketplace.
+    /// Creates a NFT item sale on the marketplace.
     #[ink(message)]
     fn list(
         &mut self,
@@ -45,7 +45,7 @@ pub trait MarketplaceSale {
         price: Balance,
     ) -> Result<(), MarketplaceError>;
 
-    /// Removes NFT from the marketplace sale.
+    /// Removes aa NFT from the marketplace sale.
     #[ink(message)]
     fn unlist(&mut self, contract_address: AccountId, token_id: Id)
         -> Result<(), MarketplaceError>;
@@ -54,7 +54,7 @@ pub trait MarketplaceSale {
     #[ink(message, payable)]
     fn buy(&mut self, contract_address: AccountId, token_id: Id) -> Result<(), MarketplaceError>;
 
-    /// Registers NFT contract to the marketplace.
+    /// Registers NFT collection to the marketplace.
     #[ink(message)]
     fn register(
         &mut self,
@@ -64,9 +64,12 @@ pub trait MarketplaceSale {
         marketplace_ipfs: String,
     ) -> Result<(), MarketplaceError>;
 
-    /// Gets registered contract.
+    /// Gets registered collection.
     #[ink(message)]
-    fn get_registered_collection(&self, contract_address: AccountId) -> Option<RegisteredCollection>;
+    fn get_registered_collection(
+        &self,
+        contract_address: AccountId,
+    ) -> Option<RegisteredCollection>;
 
     /// Sets the marketplace fee.
     #[ink(message)]

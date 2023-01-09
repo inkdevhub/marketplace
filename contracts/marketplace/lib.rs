@@ -139,7 +139,9 @@ pub mod marketplace {
             assert!(marketplace
                 .register(contract_address(), fee_recipient(), 999, ipfs.clone())
                 .is_ok());
-            let contract = marketplace.get_registered_collection(contract_address()).unwrap();
+            let contract = marketplace
+                .get_registered_collection(contract_address())
+                .unwrap();
             assert_eq!(contract.royalty_receiver, fee_recipient());
             assert_eq!(contract.royalty, 999);
             assert_eq!(contract.marketplace_ipfs, ipfs);

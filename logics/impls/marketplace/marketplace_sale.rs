@@ -58,21 +58,38 @@ pub trait Internal {
         token_id: Id,
     ) -> Result<(), MarketplaceError>;
 
-    fn check_value(
+    /// Checks token price.
+    fn check_price(
         &self,
         transfered_value: Balance,
         price: Balance,
     ) -> Result<(), MarketplaceError>;
 
+    /// Checks fee
     fn check_fee(&self, fee: u16, max_fee: u16) -> Result<(), MarketplaceError>;
 
+    /// Checks if token is listed for sale on the marketplace.
     fn is_token_listed(&self, contract_address: AccountId, token_id: Id) -> bool;
+
+    /// Transfers token.
+    fn transfer_token(
+        &self,
+        contract_address: AccountId,
+        token_id: Id,
+        token_owner: AccountId,
+        buyer: AccountId,
+        seller_fee: Balance,
+        marketplace_fee: Balance,
+        royalty_receiver: AccountId,
+        author_royalty: Balance,
+    ) -> Result<(), MarketplaceError>;
 }
 
 impl<T> MarketplaceSale for T
 where
     T: Storage<Data> + Storage<ownable::Data> + Storage<reentrancy_guard::Data>,
 {
+    /// Adds a NFT contract to the marketplace.
     default fn factory(
         &mut self,
         marketplace_ipfs: String,
@@ -122,6 +139,7 @@ where
         Ok(contract_address)
     }
 
+    /// Sets a hash of a Shiden34 contract to be instantiated by factory call.
     #[modifiers(only_owner)]
     default fn set_nft_contract_hash(
         &mut self,
@@ -132,17 +150,22 @@ where
         Ok(())
     }
 
+    /// Gets Shiden34 contract hash.
     default fn nft_contract_hash(&self) -> Hash {
         self.data::<Data>().nft_contract_hash
     }
 
+    /// Creates a NFT item sale on the marketplace.
     default fn list(
         &mut self,
         contract_address: AccountId,
         token_id: Id,
         price: Balance,
     ) -> Result<(), MarketplaceError> {
-        ensure!(!self.is_token_listed(contract_address, token_id.clone()), MarketplaceError::ItemAlreadyListedForSale);
+        ensure!(
+            !self.is_token_listed(contract_address, token_id.clone()),
+            MarketplaceError::ItemAlreadyListedForSale
+        );
         self.check_token_owner(contract_address, token_id.clone())?;
         self.data::<Data>().items.insert(
             &(contract_address, token_id),
@@ -154,12 +177,16 @@ where
         Ok(())
     }
 
+    /// Removes aa NFT from the marketplace sale.
     default fn unlist(
         &mut self,
         contract_address: AccountId,
         token_id: Id,
     ) -> Result<(), MarketplaceError> {
-        ensure!(self.is_token_listed(contract_address, token_id.clone()), MarketplaceError::ItemNotListedForSale);
+        ensure!(
+            self.is_token_listed(contract_address, token_id.clone()),
+            MarketplaceError::ItemNotListedForSale
+        );
         self.check_token_owner(contract_address, token_id.clone())?;
 
         self.data::<Data>()
@@ -168,6 +195,7 @@ where
         Ok(())
     }
 
+    /// Buys NFT item from the marketplace.
     #[modifiers(non_reentrant)]
     default fn buy(
         &mut self,
@@ -186,7 +214,7 @@ where
         ensure!(token_owner != caller, MarketplaceError::AlreadyOwner);
 
         let value = Self::env().transferred_value();
-        self.check_value(value, item.price)?;
+        self.check_price(value, item.price)?;
 
         let collection = self
             .data::<Data>()
@@ -208,28 +236,19 @@ where
             .checked_sub(author_royalty)
             .unwrap_or_default();
 
-        match PSP34Ref::transfer(
-            &contract_address,
-            caller,
+        self.transfer_token(
+            contract_address,
             token_id,
-            ink_prelude::vec::Vec::new(),
-        ) {
-            Ok(()) => {
-                Self::env()
-                    .transfer(token_owner, seller_fee)
-                    .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
-                Self::env()
-                    .transfer(self.data::<Data>().market_fee_recipient, marketplace_fee)
-                    .map_err(|_| MarketplaceError::TransferToMarketplaceFailed)?;
-                Self::env()
-                    .transfer(collection.royalty_receiver, author_royalty)
-                    .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
-                Ok(())
-            }
-            Err(_) => Err(MarketplaceError::UnableToTransferToken),
-        }
+            token_owner,
+            caller,
+            seller_fee,
+            marketplace_fee,
+            collection.royalty_receiver,
+            author_royalty,
+        )
     }
 
+    /// Registers NFT collection to the marketplace.
     default fn register(
         &mut self,
         contract_address: AccountId,
@@ -270,12 +289,17 @@ where
         }
     }
 
-    default fn get_registered_collection(&self, contract_address: AccountId) -> Option<RegisteredCollection> {
+    /// Gets registered collection.
+    default fn get_registered_collection(
+        &self,
+        contract_address: AccountId,
+    ) -> Option<RegisteredCollection> {
         self.data::<Data>()
             .registered_collections
             .get(&contract_address)
     }
 
+    /// Sets the marketplace fee.
     #[modifiers(only_owner)]
     default fn set_marketplace_fee(&mut self, fee: u16) -> Result<(), MarketplaceError> {
         let max_fee = self.data::<Data>().max_fee;
@@ -285,14 +309,17 @@ where
         Ok(())
     }
 
+    /// Gets the marketplace fee.
     default fn get_marketplace_fee(&self) -> u16 {
         self.data::<Data>().fee
     }
 
+    /// Gets max fee that can be applied to an item price.
     default fn get_max_fee(&self) -> u16 {
         self.data::<Data>().max_fee
     }
 
+    /// Checks if NFT token is listed on the marketplace and returns token price.
     default fn get_price(&self, contract_address: AccountId, token_id: Id) -> Option<Balance> {
         match self.data::<Data>().items.get(&(contract_address, token_id)) {
             Some(item) => Some(item.price),
@@ -300,6 +327,7 @@ where
         }
     }
 
+    /// Sets contract metadata (ipfs url)
     #[modifiers(only_owner)]
     default fn set_contract_metadata(
         &mut self,
@@ -324,10 +352,12 @@ where
         Ok(())
     }
 
+    /// Gets the marketplace fee recipient.
     default fn get_fee_recipient(&self) -> AccountId {
         self.data::<Data>().market_fee_recipient
     }
 
+    /// Sets the marketplace fee recipient.
     #[modifiers(only_owner)]
     default fn set_fee_recipient(
         &mut self,
@@ -366,7 +396,7 @@ where
         }
     }
 
-    default fn check_value(
+    default fn check_price(
         &self,
         transfered_value: Balance,
         price: Balance,
@@ -383,6 +413,42 @@ where
     }
 
     default fn is_token_listed(&self, contract_address: AccountId, token_id: Id) -> bool {
-        self.data::<Data>().items.get(&(contract_address, token_id)).is_some()
+        self.data::<Data>()
+            .items
+            .get(&(contract_address, token_id))
+            .is_some()
+    }
+
+    fn transfer_token(
+        &self,
+        contract_address: AccountId,
+        token_id: Id,
+        token_owner: AccountId,
+        buyer: AccountId,
+        seller_fee: Balance,
+        marketplace_fee: Balance,
+        royalty_receiver: AccountId,
+        author_royalty: Balance,
+    ) -> Result<(), MarketplaceError> {
+        match PSP34Ref::transfer(
+            &contract_address,
+            buyer,
+            token_id,
+            ink_prelude::vec::Vec::new(),
+        ) {
+            Ok(()) => {
+                Self::env()
+                    .transfer(token_owner, seller_fee)
+                    .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
+                Self::env()
+                    .transfer(self.data::<Data>().market_fee_recipient, marketplace_fee)
+                    .map_err(|_| MarketplaceError::TransferToMarketplaceFailed)?;
+                Self::env()
+                    .transfer(royalty_receiver, author_royalty)
+                    .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
+                Ok(())
+            }
+            Err(_) => Err(MarketplaceError::UnableToTransferToken),
+        }
     }
 }
