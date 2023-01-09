@@ -26,7 +26,7 @@ pub const STORAGE_KEY: u32 = openbrush::storage_unique_key!(Data);
 #[derive(Default, Debug)]
 #[openbrush::upgradeable_storage(STORAGE_KEY)]
 pub struct Data {
-    pub registered_contracts: Mapping<AccountId, RegisteredCollection>,
+    pub registered_collections: Mapping<AccountId, RegisteredCollection>,
     pub items: Mapping<(AccountId, Id), Item>,
     pub fee: u16,
     pub max_fee: u16,
@@ -72,6 +72,8 @@ pub enum MarketplaceError {
     AlreadyOwner,
     /// Token does not exist.
     TokenDoesNotExist,
+    /// Marketplace item is already listed for sale.
+    ItemAlreadyListedForSale,
 }
 
 #[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]

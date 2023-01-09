@@ -90,7 +90,7 @@ describe('Marketplace tests', () => {
     await setup();
     await registerContract(deployer);
 
-    const contract = await marketplace.query.getContract(psp34.address);
+    const contract = await marketplace.query.getRegisteredCollection(psp34.address);
 
     expect(contract.value.royaltyReceiver).to.be.equal(deployer.address);
     expect(contract.value.royalty).to.be.equal(100);
@@ -137,6 +137,33 @@ describe('Marketplace tests', () => {
     const listResult = await marketplace.withSigner(charlie).query.list(psp34.address, {u64: 1}, 100, { gasLimit: gasRequired * 2n });
 
     expect(listResult.value.err.hasOwnProperty('notOwner')).to.be.true;
+  });
+
+  it('list fails if token is already listed', async () => {
+    await setup();
+    await mintToken(bob);
+    await registerContract(deployer);
+    
+    // List token to the marketplace.
+    const { gasRequired } = await marketplace.withSigner(bob).query.list(psp34.address, {u64: 1}, 100);
+    await marketplace.withSigner(bob).tx.list(psp34.address, {u64: 1}, 100, { gasLimit: gasRequired * 2n });
+
+    // Try to list the same token again.
+    const listResult = await marketplace.withSigner(bob).query.list(psp34.address, {u64: 1}, 100, { gasLimit: gasRequired * 2n });
+
+    expect(listResult.value.err.hasOwnProperty('itemAlreadyListedForSale')).to.be.true;
+  });
+
+  it('unlist fails if token is not listed', async () => {
+    await setup();
+    await mintToken(bob);
+    await registerContract(deployer);
+    
+    // unlist token to the marketplace.
+    const { gasRequired } = await marketplace.withSigner(bob).query.unlist(psp34.address, {u64: 1});
+    const unlistResult = await marketplace.withSigner(bob).query.unlist(psp34.address, {u64: 1}, { gasLimit: gasRequired * 2n });
+
+    expect(unlistResult.value.err.hasOwnProperty('itemNotListedForSale')).to.be.true;
   });
 
   it('buy works', async () => {
@@ -192,7 +219,7 @@ describe('Marketplace tests', () => {
     const gas = (await marketplace.withSigner(deployer).query.setContractMetadata(psp34.address, marketplace_ipfs)).gasRequired;
     const approveResult = await marketplace.withSigner(deployer).tx.setContractMetadata(psp34.address, marketplace_ipfs, { gasLimit: gas });
 
-    const contract = await marketplace.query.getContract(psp34.address);
+    const contract = await marketplace.query.getRegisteredCollection(psp34.address);
     expect(contract.value.marketplaceIpfs).to.be.equal(toHex(marketplace_ipfs));
   });
 
@@ -266,7 +293,7 @@ describe('Marketplace tests', () => {
     expect(shiden34Address).is.not.empty;
 
     // Check if deployed contract has been registered
-    const registerCheckResult = await marketplace.query.getContract(shiden34Address);
+    const registerCheckResult = await marketplace.query.getRegisteredCollection(shiden34Address);
     expect(registerCheckResult).is.not.empty;
     expect(registerCheckResult.value.royalty).to.be.equal(200);
     expect(registerCheckResult.value.royaltyReceiver).to.be.equal(bob.address);

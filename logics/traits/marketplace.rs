@@ -66,7 +66,7 @@ pub trait MarketplaceSale {
 
     /// Gets registered contract.
     #[ink(message)]
-    fn get_contract(&self, contract_address: AccountId) -> Option<RegisteredCollection>;
+    fn get_registered_collection(&self, contract_address: AccountId) -> Option<RegisteredCollection>;
 
     /// Sets the marketplace fee.
     #[ink(message)]

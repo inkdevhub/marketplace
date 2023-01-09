@@ -52,7 +52,7 @@ use shiden34::shiden34::Shiden34ContractRef;
 
 pub trait Internal {
     /// Checks if contract caller is an token owner
-    fn check_owner(
+    fn check_token_owner(
         &self,
         contract_address: AccountId,
         token_id: Id,
@@ -65,6 +65,8 @@ pub trait Internal {
     ) -> Result<(), MarketplaceError>;
 
     fn check_fee(&self, fee: u16, max_fee: u16) -> Result<(), MarketplaceError>;
+
+    fn is_token_listed(&self, contract_address: AccountId, token_id: Id) -> bool;
 }
 
 impl<T> MarketplaceSale for T
@@ -106,7 +108,7 @@ where
         .map_err(|_| MarketplaceError::PSP34InstantiationFailed)?;
 
         let contract_address = nft.to_account_id();
-        self.data::<Data>().registered_contracts.insert(
+        self.data::<Data>().registered_collections.insert(
             &contract_address,
             &RegisteredCollection {
                 royalty_receiver,
@@ -140,7 +142,8 @@ where
         token_id: Id,
         price: Balance,
     ) -> Result<(), MarketplaceError> {
-        self.check_owner(contract_address, token_id.clone())?;
+        ensure!(!self.is_token_listed(contract_address, token_id.clone()), MarketplaceError::ItemAlreadyListedForSale);
+        self.check_token_owner(contract_address, token_id.clone())?;
         self.data::<Data>().items.insert(
             &(contract_address, token_id),
             &Item {
@@ -156,7 +159,8 @@ where
         contract_address: AccountId,
         token_id: Id,
     ) -> Result<(), MarketplaceError> {
-        self.check_owner(contract_address, token_id.clone())?;
+        ensure!(self.is_token_listed(contract_address, token_id.clone()), MarketplaceError::ItemNotListedForSale);
+        self.check_token_owner(contract_address, token_id.clone())?;
 
         self.data::<Data>()
             .items
@@ -178,13 +182,15 @@ where
 
         let token_owner = PSP34Ref::owner_of(&contract_address, token_id.clone())
             .ok_or(MarketplaceError::TokenDoesNotExist)?;
+        let caller = Self::env().caller();
+        ensure!(token_owner != caller, MarketplaceError::AlreadyOwner);
 
         let value = Self::env().transferred_value();
         self.check_value(value, item.price)?;
 
         let collection = self
             .data::<Data>()
-            .registered_contracts
+            .registered_collections
             .get(&contract_address)
             .ok_or(MarketplaceError::NotRegisteredContract)?;
 
@@ -201,9 +207,6 @@ where
             .unwrap_or_default()
             .checked_sub(author_royalty)
             .unwrap_or_default();
-
-        let caller = Self::env().caller();
-        ensure!(token_owner != caller, MarketplaceError::AlreadyOwner);
 
         match PSP34Ref::transfer(
             &contract_address,
@@ -248,13 +251,13 @@ where
 
         if self
             .data::<Data>()
-            .registered_contracts
+            .registered_collections
             .get(&contract_address)
             .is_some()
         {
             Err(MarketplaceError::ContractAlreadyRegistered)
         } else {
-            self.data::<Data>().registered_contracts.insert(
+            self.data::<Data>().registered_collections.insert(
                 &contract_address,
                 &RegisteredCollection {
                     royalty_receiver,
@@ -267,9 +270,9 @@ where
         }
     }
 
-    default fn get_contract(&self, contract_address: AccountId) -> Option<RegisteredCollection> {
+    default fn get_registered_collection(&self, contract_address: AccountId) -> Option<RegisteredCollection> {
         self.data::<Data>()
-            .registered_contracts
+            .registered_collections
             .get(&contract_address)
     }
 
@@ -305,11 +308,11 @@ where
     ) -> Result<(), MarketplaceError> {
         let collection = self
             .data::<Data>()
-            .registered_contracts
+            .registered_collections
             .get(&contract_address)
             .ok_or(MarketplaceError::NotRegisteredContract)?;
 
-        self.data::<Data>().registered_contracts.insert(
+        self.data::<Data>().registered_collections.insert(
             &contract_address,
             &RegisteredCollection {
                 royalty_receiver: collection.royalty_receiver,
@@ -340,14 +343,14 @@ impl<T> Internal for T
 where
     T: Storage<Data>,
 {
-    default fn check_owner(
+    default fn check_token_owner(
         &self,
         contract_address: AccountId,
         token_id: Id,
     ) -> Result<(), MarketplaceError> {
         if !self
             .data::<Data>()
-            .registered_contracts
+            .registered_collections
             .contains(&contract_address)
         {
             return Err(MarketplaceError::NotRegisteredContract)
@@ -377,5 +380,9 @@ where
         ensure!(fee <= max_fee, MarketplaceError::FeeTooHigh);
 
         Ok(())
+    }
+
+    default fn is_token_listed(&self, contract_address: AccountId, token_id: Id) -> bool {
+        self.data::<Data>().items.get(&(contract_address, token_id)).is_some()
     }
 }
