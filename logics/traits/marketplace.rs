@@ -45,7 +45,7 @@ pub trait MarketplaceSale {
         price: Balance,
     ) -> Result<(), MarketplaceError>;
 
-    /// Removes aa NFT from the marketplace sale.
+    /// Removes a NFT from the marketplace sale.
     #[ink(message)]
     fn unlist(&mut self, contract_address: AccountId, token_id: Id)
         -> Result<(), MarketplaceError>;

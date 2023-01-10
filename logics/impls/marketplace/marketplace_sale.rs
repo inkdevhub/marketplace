@@ -177,7 +177,7 @@ where
         Ok(())
     }
 
-    /// Removes aa NFT from the marketplace sale.
+    /// Removes a NFT from the marketplace sale.
     default fn unlist(
         &mut self,
         contract_address: AccountId,
