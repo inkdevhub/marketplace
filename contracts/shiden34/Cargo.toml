@@ -16,7 +16,7 @@ scale = { package = "parity-scale-codec", version = "3", default-features = fals
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 
 openbrush = { tag = "v2.3.0", git = "https://github.com/Supercolony-net/openbrush-contracts", default-features = false, features = ["ownable", "psp34", "reentrancy_guard"] }
-pallet_payable_mint = { version="0.2.0", git = "https://github.com/swanky-dapps/nft", default-features = false }
+payable_mint_pkg = { version="0.2.0", git = "https://github.com/swanky-dapps/nft", default-features = false }
 
 
 [lib]
@@ -37,6 +37,6 @@ std = [
     "scale/std",
     "scale-info/std",
     "openbrush/std",
-    "pallet_payable_mint/std",
+    "payable_mint_pkg/std",
 ]
 ink-as-dependency = []

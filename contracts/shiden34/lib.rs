@@ -23,7 +23,7 @@ pub mod shiden34 {
         },
     };
 
-    use pallet_payable_mint::{
+    use payable_mint_pkg::{
         impls::payable_mint::*,
         traits::payable_mint::*,
     };
@@ -130,8 +130,7 @@ pub mod shiden34 {
         };
         use ink_lang as ink;
         use ink_prelude::string::String as PreludeString;
-        use pallet_payable_mint::impls::payable_mint::{
-            payable_mint::Internal,
+        use payable_mint_pkg::impls::payable_mint::{
             types::Shiden34Error,
         };
         const PRICE: Balance = 100_000_000_000_000_000;
