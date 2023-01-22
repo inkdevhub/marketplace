@@ -5,8 +5,20 @@ This contract is an example for the NFT marketplace implementation.
 Apache 2.0
 
 ### 🏗️ How to use - Contracts
+
+
 ##### 💫 Build
 - Use this [instructions](https://use.ink/getting-started/setup) to setup your ink!/Rust environment
+
+Clone project
+```sh
+git clone git@github.com:swanky-dapps/marketplace.git
+```
+
+Navigate yourself to marketplace directory
+```sh
+cd marketplace/contracts/marketplace
+```
 
 ```sh
 cargo contract build
