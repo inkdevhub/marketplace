@@ -189,9 +189,7 @@ describe('Marketplace tests', () => {
       { gasLimit: gasRequired * 2n, value: new BN('100000000000000000000') });
 
     expect(buyResult.result?.isInBlock).to.be.true;
-
-    // TODO fix. This check throws the following: Error: Number can only safely store up to 53 bits
-    // emit(buyResult, 'TokenBought', { contract: psp34.address, id: {u64: 1}, price: new BN('100000000000000000000') })
+    checkIfEventIsEmitted(buyResult, 'TokenBought', { contract: psp34.address, id: {u64: 1}, price: BigInt('100000000000000000000') })
 
     // Balances check.
     const deployerBalance = await getBalance(deployer);
