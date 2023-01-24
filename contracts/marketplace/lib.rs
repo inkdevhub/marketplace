@@ -225,6 +225,7 @@ pub mod marketplace {
             assert_eq!(contract.royalty_receiver, fee_recipient());
             assert_eq!(contract.royalty, 999);
             assert_eq!(contract.marketplace_ipfs, ipfs);
+            assert_eq!(1, ink_env::test::recorded_events().count());
         }
 
         #[ink::test]
