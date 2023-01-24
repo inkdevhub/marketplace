@@ -82,7 +82,14 @@ pub trait Internal {
         marketplace_fee: Balance,
         royalty_receiver: AccountId,
         author_royalty: Balance,
+        token_price: Balance,
     ) -> Result<(), MarketplaceError>;
+}
+
+pub trait MarketplaceSaleEvents {
+    fn emit_token_listed_event(&self, contract: AccountId, token_id: Id, price: Option<Balance>);
+    fn emit_token_bought_event(&self, contract: AccountId, token_id: Id, price: Balance);
+    fn emit_collection_registered_event(&self, contract: AccountId);
 }
 
 impl<T> MarketplaceSale for T
@@ -135,6 +142,7 @@ where
         );
 
         self.data::<Data>().nonce = nonce;
+        self.emit_collection_registered_event(contract_address);
 
         Ok(contract_address)
     }
@@ -168,12 +176,13 @@ where
         );
         self.check_token_owner(contract_address, token_id.clone())?;
         self.data::<Data>().items.insert(
-            &(contract_address, token_id),
+            &(contract_address, token_id.clone()),
             &Item {
                 owner: Self::env().caller(),
                 price,
             },
         );
+        self.emit_token_listed_event(contract_address, token_id, Some(price));
         Ok(())
     }
 
@@ -191,7 +200,8 @@ where
 
         self.data::<Data>()
             .items
-            .remove(&(contract_address, token_id));
+            .remove(&(contract_address, token_id.clone()));
+        self.emit_token_listed_event(contract_address, token_id, None);
         Ok(())
     }
 
@@ -245,6 +255,7 @@ where
             marketplace_fee,
             collection.royalty_receiver,
             author_royalty,
+            value,
         )
     }
 
@@ -284,7 +295,7 @@ where
                     marketplace_ipfs,
                 },
             );
-
+            self.emit_collection_registered_event(contract_address);
             Ok(())
         }
     }
@@ -369,6 +380,29 @@ where
     }
 }
 
+impl<T> MarketplaceSaleEvents for T
+where
+    T: Storage<Data>,
+{
+    default fn emit_token_listed_event(
+        &self,
+        _contract: AccountId,
+        _token_id: Id,
+        _price: Option<Balance>,
+    ) {
+    }
+
+    default fn emit_token_bought_event(
+        &self,
+        _contract: AccountId,
+        _token_id: Id,
+        _price: Balance,
+    ) {
+    }
+
+    default fn emit_collection_registered_event(&self, _contract: AccountId) {}
+}
+
 impl<T> Internal for T
 where
     T: Storage<Data>,
@@ -429,11 +463,12 @@ where
         marketplace_fee: Balance,
         royalty_receiver: AccountId,
         author_royalty: Balance,
+        token_price: Balance,
     ) -> Result<(), MarketplaceError> {
         match PSP34Ref::transfer(
             &contract_address,
             buyer,
-            token_id,
+            token_id.clone(),
             ink_prelude::vec::Vec::new(),
         ) {
             Ok(()) => {
@@ -446,6 +481,7 @@ where
                 Self::env()
                     .transfer(royalty_receiver, author_royalty)
                     .map_err(|_| MarketplaceError::TransferToAuthorFailed)?;
+                self.emit_token_bought_event(contract_address, token_id, token_price);
                 Ok(())
             }
             Err(_) => Err(MarketplaceError::UnableToTransferToken),
