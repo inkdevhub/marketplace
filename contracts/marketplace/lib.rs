@@ -3,16 +3,28 @@
 
 #[openbrush::contract]
 pub mod marketplace {
+    use ink_env::DefaultEnvironment;
+    use ink_lang::{
+        codegen::{
+            EmitEvent,
+            Env,
+        },
+        EnvAccess,
+    };
     use ink_storage::traits::SpreadAllocate;
     use openbrush::{
         contracts::{
             ownable::*,
+            psp34::Id,
             reentrancy_guard::*,
         },
         traits::Storage,
     };
     use pallet_marketplace::{
-        impls::marketplace::*,
+        impls::marketplace::{
+            marketplace_sale::MarketplaceSaleEvents,
+            *,
+        },
         traits::marketplace::*,
     };
 
@@ -28,6 +40,35 @@ pub mod marketplace {
         marketplace: types::Data,
     }
 
+    /// Event emitted when token is listed or unlisted
+    #[ink(event)]
+    pub struct TokenListed {
+        #[ink(topic)]
+        contract: AccountId,
+        #[ink(topic)]
+        id: Id,
+        #[ink(topic)]
+        price: Option<Balance>,
+    }
+
+    /// Event emited when a token is bought
+    #[ink(event)]
+    pub struct TokenBought {
+        #[ink(topic)]
+        contract: AccountId,
+        #[ink(topic)]
+        id: Id,
+        #[ink(topic)]
+        price: Balance,
+    }
+
+    /// Event emitted when a NFT contract is registered to the marketplace.
+    #[ink(event)]
+    pub struct CollectionRegistered {
+        #[ink(topic)]
+        contract: AccountId,
+    }
+
     impl MarketplaceContract {
         #[ink(constructor)]
         pub fn new(market_fee_recipient: AccountId) -> Self {
@@ -39,6 +80,45 @@ pub mod marketplace {
                 let caller = instance.env().caller();
                 instance._init_with_owner(caller);
             })
+        }
+    }
+
+    impl MarketplaceSaleEvents for MarketplaceContract {
+        fn emit_token_listed_event(
+            &self,
+            contract: AccountId,
+            token_id: Id,
+            price: Option<Balance>,
+        ) {
+            <EnvAccess<'_, DefaultEnvironment> as EmitEvent<MarketplaceContract>>::emit_event::<
+                TokenListed,
+            >(
+                self.env(),
+                TokenListed {
+                    contract,
+                    id: token_id,
+                    price,
+                },
+            );
+        }
+
+        fn emit_token_bought_event(&self, contract: AccountId, token_id: Id, price: Balance) {
+            <EnvAccess<'_, DefaultEnvironment> as EmitEvent<MarketplaceContract>>::emit_event::<
+                TokenBought,
+            >(
+                self.env(),
+                TokenBought {
+                    contract,
+                    id: token_id,
+                    price,
+                },
+            );
+        }
+
+        fn emit_collection_registered_event(&self, contract: AccountId) {
+            <EnvAccess<'_, DefaultEnvironment> as EmitEvent<MarketplaceContract>>::emit_event::<
+                CollectionRegistered,
+            >(self.env(), CollectionRegistered { contract })
         }
     }
 
@@ -145,6 +225,7 @@ pub mod marketplace {
             assert_eq!(contract.royalty_receiver, fee_recipient());
             assert_eq!(contract.royalty, 999);
             assert_eq!(contract.marketplace_ipfs, ipfs);
+            assert_eq!(1, ink_env::test::recorded_events().count());
         }
 
         #[ink::test]

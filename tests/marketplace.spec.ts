@@ -122,6 +122,7 @@ describe('Marketplace tests', () => {
     const { gasRequired } = await marketplace.withSigner(bob).query.unlist(psp34.address, {u64: 1});
     const unlistResult = await marketplace.withSigner(bob).tx.unlist(psp34.address, {u64: 1}, { gasLimit: gasRequired * 2n });
     expect(unlistResult.result?.isInBlock).to.be.true;
+    checkIfEventIsEmitted(unlistResult, 'TokenListed', { contract: psp34.address, id: {u64: 1}, price: null });
     
     // Check if the token is actually unlisted.
     expect((await marketplace.query.getPrice(psp34.address, {u64: 1})).value).to.equal(null);
@@ -188,6 +189,7 @@ describe('Marketplace tests', () => {
       { gasLimit: gasRequired * 2n, value: new BN('100000000000000000000') });
 
     expect(buyResult.result?.isInBlock).to.be.true;
+    checkIfEventIsEmitted(buyResult, 'TokenBought', { contract: psp34.address, id: {u64: 1}, price: BigInt('100000000000000000000') })
 
     // Balances check.
     const deployerBalance = await getBalance(deployer);
@@ -208,7 +210,7 @@ describe('Marketplace tests', () => {
       psp34.address, 
       {u64: 1},
       { gasLimit: gasRequired * 2n, value: new BN('100000000000000000000') });
-      expect(reBuyResult.value.err.hasOwnProperty('alreadyOwner')).to.be.true;
+    expect(reBuyResult.value.err.hasOwnProperty('alreadyOwner')).to.be.true;
   });
 
   it('setContractMetadata works', async () => {
@@ -289,8 +291,9 @@ describe('Marketplace tests', () => {
     const instatiatedEvent = factoryResult.result.events.find(x => x.event.method === 'Instantiated' && x.event.section === 'contracts');
     expect(instatiatedEvent).is.not.empty;
     
-    const shiden34Address = instatiatedEvent.event.data['contract'];
+    const shiden34Address = instatiatedEvent.event.data['contract'].toHuman();
     expect(shiden34Address).is.not.empty;
+    checkIfEventIsEmitted(factoryResult, 'CollectionRegistered', { contract: shiden34Address });
 
     // Check if deployed contract has been registered
     const registerCheckResult = await marketplace.query.getRegisteredCollection(shiden34Address);
@@ -314,6 +317,7 @@ describe('Marketplace tests', () => {
     const { gasRequired } = await marketplace.withSigner(signer).query.register(psp34.address, signer.address, 100, ipfs);
     const registerResult = await marketplace.withSigner(signer).tx.register(psp34.address, signer.address, 100, ipfs, { gasLimit: gasRequired * 2n });
     expect(registerResult.result?.isInBlock).to.be.true;
+    checkIfEventIsEmitted(registerResult, 'CollectionRegistered', { contract: psp34.address });
   }
 
   // Helper function to list token for sale.
@@ -321,6 +325,7 @@ describe('Marketplace tests', () => {
     const { gasRequired } = await marketplace.withSigner(signer).query.list(psp34.address, {u64: 1}, 100);
     const listResult = await marketplace.withSigner(signer).tx.list(psp34.address, {u64: 1}, 100, { gasLimit: gasRequired * 2n });
     expect(listResult.result?.isInBlock).to.be.true;
+    checkIfEventIsEmitted(listResult, 'TokenListed', { contract: psp34.address, id: {u64: 1}, price: 100 });
   }
 
   // Helper function to get account balance
@@ -333,13 +338,13 @@ describe('Marketplace tests', () => {
 
 // Helper function to parse Events
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function emit(result: { events?: any }, name: string, args: any): void {
+function checkIfEventIsEmitted(result: { events?: any }, name: string, args: any): void {
   const event = result.events.find(
     (event: { name: string }) => event.name === name,
   );
   for (const key of Object.keys(event.args)) {
     if (event.args[key] instanceof ReturnNumber) {
-      event.args[key] = event.args[key].toNumber();
+      event.args[key] = BigInt(event.args[key]);
     }
   }
   expect(event).eql({ name, args, });
