@@ -133,9 +133,6 @@ where
             _ => Err(MarketplaceError::PSP34InstantiationFailed),
         }?;
 
-        // .instantiate()
-        // .map_err(|_| MarketplaceError::PSP34InstantiationFailed)?;
-
         let contract_address = nft.to_account_id();
         self.data::<Data>().registered_collections.insert(
             &contract_address,

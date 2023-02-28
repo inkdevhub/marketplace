@@ -13,12 +13,7 @@ pallet_marketplace = { path = "../../logics", default-features = false }
 
 
 [lib]
-name = "marketplace"
 path = "lib.rs"
-crate-type = [
-	# Used for normal contract Wasm blobs.
-	"cdylib",
-]
 
 [features]
 default = ["std"]
