@@ -29,11 +29,10 @@ use crate::{
     },
     traits::marketplace::MarketplaceSale,
 };
-use ink_env::{
-    hash::Blake2x256,
-    Hash,
+use ink::{
+    env::hash::Blake2x256,
+    ToAccountId,
 };
-use ink_lang::ToAccountId;
 use openbrush::{
     contracts::{
         ownable::*,
@@ -44,6 +43,7 @@ use openbrush::{
     traits::{
         AccountId,
         Balance,
+        Hash,
         Storage,
         String,
     },
@@ -61,7 +61,7 @@ pub trait Internal {
     /// Checks token price.
     fn check_price(
         &self,
-        transfered_value: Balance,
+        transferred_value: Balance,
         price: Balance,
     ) -> Result<(), MarketplaceError>;
 
@@ -432,10 +432,10 @@ where
 
     default fn check_price(
         &self,
-        transfered_value: Balance,
+        transferred_value: Balance,
         price: Balance,
     ) -> Result<(), MarketplaceError> {
-        ensure!(transfered_value >= price, MarketplaceError::BadBuyValue);
+        ensure!(transferred_value >= price, MarketplaceError::BadBuyValue);
 
         Ok(())
     }
@@ -469,7 +469,7 @@ where
             &contract_address,
             buyer,
             token_id.clone(),
-            ink_prelude::vec::Vec::new(),
+            ink::prelude::vec::Vec::new(),
         ) {
             Ok(()) => {
                 Self::env()

@@ -3,15 +3,14 @@
 
 #[openbrush::contract]
 pub mod marketplace {
-    use ink_env::DefaultEnvironment;
-    use ink_lang::{
+    use ink::{
         codegen::{
             EmitEvent,
             Env,
         },
         EnvAccess,
     };
-    use ink_storage::traits::SpreadAllocate;
+    use ink::env::DefaultEnvironment;
     use openbrush::{
         contracts::{
             ownable::*,
@@ -30,7 +29,7 @@ pub mod marketplace {
 
     // MarketplaceContract contract storage
     #[ink(storage)]
-    #[derive(Default, SpreadAllocate, Storage)]
+    #[derive(Default, Storage)]
     pub struct MarketplaceContract {
         #[storage_field]
         ownable: ownable::Data,
@@ -51,7 +50,7 @@ pub mod marketplace {
         price: Option<Balance>,
     }
 
-    /// Event emited when a token is bought
+    /// Event emitted when a token is bought
     #[ink(event)]
     pub struct TokenBought {
         #[ink(topic)]
@@ -72,14 +71,14 @@ pub mod marketplace {
     impl MarketplaceContract {
         #[ink(constructor)]
         pub fn new(market_fee_recipient: AccountId) -> Self {
-            ink_lang::codegen::initialize_contract(|instance: &mut MarketplaceContract| {
-                instance.marketplace.fee = 100; // 1%
-                instance.marketplace.max_fee = 1000; // 10%
-                instance.marketplace.market_fee_recipient = market_fee_recipient;
+            let mut instance = Self::default();
+            instance.marketplace.fee = 100; // 1%
+            instance.marketplace.max_fee = 1000; // 10%
+            instance.marketplace.market_fee_recipient = market_fee_recipient;
 
-                let caller = instance.env().caller();
-                instance._init_with_owner(caller);
-            })
+            let caller = instance.env().caller();
+            instance._init_with_owner(caller);
+            instance
         }
     }
 
@@ -130,7 +129,6 @@ pub mod marketplace {
         use super::*;
         use crate::marketplace::MarketplaceContract;
         use ink_env::test;
-        use ink_lang as ink;
         use openbrush::{
             contracts::psp34::Id,
             traits::String,

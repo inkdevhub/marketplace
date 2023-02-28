@@ -1,8 +1,3 @@
-use ink_env::Hash;
-use ink_storage::traits::{
-    PackedLayout,
-    SpreadLayout,
-};
 use openbrush::{
     contracts::{
         ownable::OwnableError,
@@ -13,6 +8,7 @@ use openbrush::{
     traits::{
         AccountId,
         Balance,
+        Hash,
         String,
     },
 };
@@ -40,7 +36,7 @@ pub struct Data {
 pub enum MarketplaceError {
     /// Caller is not a marketplace owner.
     OwnableError(OwnableError),
-    /// Caller is tryin to make second call while 1st one is still executing.
+    /// Caller is trying to make second call while 1st one is still executing.
     ReentrancyError(ReentrancyGuardError),
     /// Caller is not an NFT owner.
     NotOwner,
@@ -58,7 +54,7 @@ pub enum MarketplaceError {
     TransferToOwnerFailed,
     /// Royalty transfer failed.
     TransferToAuthorFailed,
-    /// Contract has been alredy registered to the marketplace
+    /// Contract has been already registered to the marketplace
     ContractAlreadyRegistered,
     /// Fee required is too high.
     FeeTooHigh,
@@ -76,10 +72,10 @@ pub enum MarketplaceError {
     ItemAlreadyListedForSale,
 }
 
-#[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]
+#[derive(Encode, Decode, Debug)]
 #[cfg_attr(
     feature = "std",
-    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
 )]
 pub struct RegisteredCollection {
     pub royalty_receiver: AccountId,
@@ -87,10 +83,10 @@ pub struct RegisteredCollection {
     pub royalty: u16,
 }
 
-#[derive(Encode, Decode, SpreadLayout, PackedLayout, Default, Debug)]
+#[derive(Encode, Decode, Debug)]
 #[cfg_attr(
     feature = "std",
-    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
 )]
 pub struct Item {
     pub owner: AccountId,
