@@ -26,7 +26,7 @@ pub struct Data {
     pub items: Mapping<(AccountId, Id), Item>,
     pub fee: u16,
     pub max_fee: u16,
-    pub market_fee_recipient: AccountId,
+    pub market_fee_recipient: Option<AccountId>,
     pub nft_contract_hash: Hash,
     pub nonce: u64,
 }

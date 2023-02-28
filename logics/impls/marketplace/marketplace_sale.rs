@@ -118,7 +118,7 @@ where
         let caller = Self::env().caller();
         let salt = Self::env().hash_encoded::<Blake2x256, _>(&(caller, nonce));
 
-        let nft = Shiden34ContractRef::new(
+        let nft = match Shiden34ContractRef::new(
             nft_name,
             nft_symbol,
             nft_base_uri,
@@ -128,8 +128,13 @@ where
         .endowment(0)
         .code_hash(contract_hash)
         .salt_bytes(&salt[..4])
-        .instantiate()
-        .map_err(|_| MarketplaceError::PSP34InstantiationFailed)?;
+        .try_instantiate() {
+            Ok(Ok(res)) => Ok(res),
+            _ => Err(MarketplaceError::PSP34InstantiationFailed),
+        }?;
+
+        // .instantiate()
+        // .map_err(|_| MarketplaceError::PSP34InstantiationFailed)?;
 
         let contract_address = nft.to_account_id();
         self.data::<Data>().registered_collections.insert(
@@ -365,7 +370,7 @@ where
 
     /// Gets the marketplace fee recipient.
     default fn get_fee_recipient(&self) -> AccountId {
-        self.data::<Data>().market_fee_recipient
+        self.data::<Data>().market_fee_recipient.unwrap()
     }
 
     /// Sets the marketplace fee recipient.
@@ -374,7 +379,7 @@ where
         &mut self,
         fee_recipient: AccountId,
     ) -> Result<(), MarketplaceError> {
-        self.data::<Data>().market_fee_recipient = fee_recipient;
+        self.data::<Data>().market_fee_recipient = Option::Some(fee_recipient);
 
         Ok(())
     }
@@ -476,7 +481,7 @@ where
                     .transfer(token_owner, seller_fee)
                     .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
                 Self::env()
-                    .transfer(self.data::<Data>().market_fee_recipient, marketplace_fee)
+                    .transfer(self.data::<Data>().market_fee_recipient.unwrap(), marketplace_fee)
                     .map_err(|_| MarketplaceError::TransferToMarketplaceFailed)?;
                 Self::env()
                     .transfer(royalty_receiver, author_royalty)
