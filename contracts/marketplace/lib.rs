@@ -8,9 +8,9 @@ pub mod marketplace {
             EmitEvent,
             Env,
         },
+        env::DefaultEnvironment,
         EnvAccess,
     };
-    use ink::env::DefaultEnvironment;
     use openbrush::{
         contracts::{
             ownable::*,

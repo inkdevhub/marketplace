@@ -34,18 +34,18 @@ pub mod test_psp34 {
     impl Contract {
         #[ink(constructor)]
         pub fn new() -> Self {
-            let mut _instance = Self::default();
-            _instance
-                ._mint_to(_instance.env().caller(), Id::U8(1))
+            let mut instance = Self::default();
+            instance
+                ._mint_to(instance.env().caller(), Id::U8(1))
                 .expect("Can mint");
-            let collection_id = _instance.collection_id();
-            _instance._set_attribute(
+            let collection_id = instance.collection_id();
+            instance._set_attribute(
                 collection_id.clone(),
                 String::from("name"),
                 String::from("MyPSP34"),
             );
-            _instance._set_attribute(collection_id, String::from("symbol"), String::from("MPSP"));
-            _instance
+            instance._set_attribute(collection_id, String::from("symbol"), String::from("MPSP"));
+            instance
         }
     }
 }

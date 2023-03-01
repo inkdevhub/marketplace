@@ -128,7 +128,8 @@ where
         .endowment(0)
         .code_hash(contract_hash)
         .salt_bytes(&salt[..4])
-        .try_instantiate() {
+        .try_instantiate()
+        {
             Ok(Ok(res)) => Ok(res),
             _ => Err(MarketplaceError::PSP34InstantiationFailed),
         }?;
@@ -478,7 +479,10 @@ where
                     .transfer(token_owner, seller_fee)
                     .map_err(|_| MarketplaceError::TransferToOwnerFailed)?;
                 Self::env()
-                    .transfer(self.data::<Data>().market_fee_recipient.unwrap(), marketplace_fee)
+                    .transfer(
+                        self.data::<Data>().market_fee_recipient.unwrap(),
+                        marketplace_fee,
+                    )
                     .map_err(|_| MarketplaceError::TransferToMarketplaceFailed)?;
                 Self::env()
                     .transfer(royalty_receiver, author_royalty)
