@@ -1,5 +1,6 @@
 use crate::impls::marketplace::types::{
     MarketplaceError,
+    NftContractType,
     RegisteredCollection,
 };
 use openbrush::{
@@ -26,6 +27,7 @@ pub trait MarketplaceSale {
         nft_base_uri: String,
         nft_max_supply: u64,
         nft_price_per_mint: Balance,
+        nft_contract_type: NftContractType,
     ) -> Result<AccountId, MarketplaceError>;
 
     /// Sets a hash of a Shiden34 contract to be instantiated by factory call.

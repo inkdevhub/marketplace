@@ -133,7 +133,10 @@ pub mod marketplace {
             contracts::psp34::Id,
             traits::String,
         };
-        use pallet_marketplace::impls::marketplace::types::MarketplaceError;
+        use pallet_marketplace::impls::marketplace::types::{
+            MarketplaceError,
+            NftContractType,
+        };
 
         #[ink::test]
         fn new_works() {
@@ -293,6 +296,7 @@ pub mod marketplace {
                     String::from("base_uri"),
                     0,
                     0,
+                    NftContractType::Psp34
                 ),
                 Err(MarketplaceError::NftContractHashNotSet)
             );

@@ -19,7 +19,10 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-use super::types::RegisteredCollection;
+use super::types::{
+    NftContractType,
+    RegisteredCollection,
+};
 use crate::{
     ensure,
     impls::marketplace::types::{
@@ -49,6 +52,7 @@ use openbrush::{
     },
 };
 use shiden34::shiden34::Shiden34ContractRef;
+use rmrk_equippable::rmrk_equippable::RmrkRef;
 
 pub trait Internal {
     /// Checks if contract caller is an token owner
@@ -107,6 +111,7 @@ where
         nft_base_uri: String,
         nft_max_supply: u64,
         nft_price_per_mint: Balance,
+        nft_contract_type: NftContractType,
     ) -> Result<AccountId, MarketplaceError> {
         let contract_hash = self.data::<Data>().nft_contract_hash;
         if contract_hash == Hash::default() {
@@ -118,23 +123,48 @@ where
         let caller = Self::env().caller();
         let salt = Self::env().hash_encoded::<Blake2x256, _>(&(caller, nonce));
 
-        let nft = match Shiden34ContractRef::new(
-            nft_name,
-            nft_symbol,
-            nft_base_uri,
-            nft_max_supply,
-            nft_price_per_mint,
-        )
-        .endowment(0)
-        .code_hash(contract_hash)
-        .salt_bytes(&salt[..4])
-        .try_instantiate()
-        {
-            Ok(Ok(res)) => Ok(res),
-            _ => Err(MarketplaceError::PSP34InstantiationFailed),
-        }?;
+        let contract_address = match nft_contract_type {
+            NftContractType::Psp34 => {
+                let nft = match Shiden34ContractRef::new(
+                    nft_name,
+                    nft_symbol,
+                    nft_base_uri,
+                    nft_max_supply,
+                    nft_price_per_mint,
+                )
+                .endowment(0)
+                .code_hash(contract_hash)
+                .salt_bytes(&salt[..4])
+                .try_instantiate()
+                {
+                    Ok(Ok(res)) => Ok(res),
+                    _ => Err(MarketplaceError::PSP34InstantiationFailed),
+                }?;
+                nft.to_account_id()
+            },
+            NftContractType::Rmrk => {
+                let nft = match RmrkRef::new(
+                    nft_name,
+                    nft_symbol,
+                    nft_base_uri.clone(),
+                    nft_max_supply,
+                    nft_price_per_mint,
+                    nft_base_uri,
+                    royalty_receiver,
+                    (royalty / 100) as u8
+                )
+                .endowment(0)
+                .code_hash(contract_hash)
+                .salt_bytes(&salt[..4])
+                .try_instantiate()
+                {
+                    Ok(Ok(res)) => Ok(res),
+                    _ => Err(MarketplaceError::PSP34InstantiationFailed),
+                }?;
+                nft.to_account_id()
+            }
+        };
 
-        let contract_address = nft.to_account_id();
         self.data::<Data>().registered_collections.insert(
             &contract_address,
             &RegisteredCollection {

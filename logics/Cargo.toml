@@ -8,9 +8,9 @@ edition = "2021"
 ink = { version = "~4.0.0", default-features = false }
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2.3", default-features = false, features = ["derive"], optional = true }
-
 openbrush = { tag = "3.0.0", git = "https://github.com/727-Ventures/openbrush-contracts", default-features = false, features = ["ownable", "psp34", "reentrancy_guard"] }
 shiden34 = { path = "../contracts/shiden34", default-features = false, features = ["ink-as-dependency"] }
+rmrk_equippable = { path = "../contracts/rmrk", default-features = false, features = ["ink-as-dependency"] }
 
 [lib]
 path = "lib.rs"
@@ -24,4 +24,5 @@ std = [
     "scale-info/std",
     "openbrush/std",
     "shiden34/std",
+    "rmrk_equippable/std",
 ]

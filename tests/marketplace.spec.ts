@@ -14,7 +14,7 @@ import Shiden34 from '../types/contracts/shiden34';
 import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { ReturnNumber } from '@727-ventures/typechain-types';
-import { Hash } from 'types-arguments/marketplace';
+import { Hash, NftContractType } from '../types/types-arguments/marketplace';
 
 use(chaiAsPromised);
 
@@ -276,7 +276,8 @@ describe('Marketplace tests', () => {
       string2ascii('TST'),
       string2ascii('nftUri'),
       1000,
-      100
+      100,
+      NftContractType.psp34
     )).gasRequired;
     const factoryResult = await marketplace.withSigner(deployer).tx.factory(
       string2ascii(marketplace_ipfs),
@@ -287,13 +288,14 @@ describe('Marketplace tests', () => {
       string2ascii('nftUri'),
       1000,
       100,
+      NftContractType.psp34,
       {gasLimit: getEstimatedGas(gas)});
     
     // Check if Shiden34 contract has been deployed
-    const instatiatedEvent = factoryResult.result.events.find(x => x.event.method === 'Instantiated' && x.event.section === 'contracts');
-    expect(instatiatedEvent).is.not.empty;
+    const instantiatedEvent = factoryResult.result.events.find(x => x.event.method === 'Instantiated' && x.event.section === 'contracts');
+    expect(instantiatedEvent).is.not.empty;
     
-    const shiden34Address = instatiatedEvent.event.data['contract'].toHuman();
+    const shiden34Address = instantiatedEvent.event.data['contract'].toHuman();
     expect(shiden34Address).is.not.empty;
     checkIfEventIsEmitted(factoryResult, 'CollectionRegistered', { contract: shiden34Address });
 
