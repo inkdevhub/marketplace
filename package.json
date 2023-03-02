@@ -21,8 +21,7 @@
     "ts-node": "^10.8.0"
   },
   "scripts": {
-    "compile": "npx @727-ventures/typechain-compiler",
-    "compile:release": "typechain-compiler --release",
+    "compile": "npx @727-ventures/typechain-compiler --release",
     "test": "mocha --require ts-node/register --recursive ./tests --extension \".spec.ts\" --exit --timeout 20000",
     "test:single": "mocha --require ts-node/register --extension \".ts\" --exit --timeout 20000",
     "postinstall": "patch-package"

@@ -11,6 +11,8 @@ import TestPSP34_factory from '../types/constructors/test_psp34';
 import TestPSP34 from '../types/contracts/test_psp34';
 import Shiden34_Factory from '../types/constructors/shiden34';
 import Shiden34 from '../types/contracts/shiden34';
+import Rmrk_Factory from '../types/constructors/rmrk_equippable';
+import Rmrk from '../types/contracts/rmrk_equippable';
 import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { ReturnNumber } from '@727-ventures/typechain-types';
@@ -37,6 +39,7 @@ describe('Marketplace tests', () => {
   let marketplaceFactory: Market_factory;
   let psp34Factory: TestPSP34_factory;
   let shiden34Factory: Shiden34_Factory;
+  let rmrkFactory: Rmrk_Factory;
   let api: ApiPromise;
   let deployer: KeyringPair;
   let bob: KeyringPair;
@@ -44,6 +47,7 @@ describe('Marketplace tests', () => {
   let marketplace: Market;
   let psp34: TestPSP34;
   let shiden34: Shiden34;
+  let rmrk: Rmrk;
 
   const gasLimit = 18750000000;
   const ZERO_ADDRESS = encodeAddress(
@@ -59,6 +63,7 @@ describe('Marketplace tests', () => {
     marketplaceFactory = new Market_factory(api, deployer);
     psp34Factory = new TestPSP34_factory(api, deployer);
     shiden34Factory = new Shiden34_Factory(api, deployer);
+    rmrkFactory = new Rmrk_Factory(api, deployer);
     marketplace = new Market((await marketplaceFactory.new(deployer.address)).address, deployer, api);
     psp34 = new TestPSP34((await psp34Factory.new()).address, deployer, api);
     shiden34 = new Shiden34((await shiden34Factory.new(
@@ -66,6 +71,16 @@ describe('Marketplace tests', () => {
       'DFT'.split(''),
       'uri'.split(''),
       1000,
+      1
+    )).address, deployer, api);
+    rmrk = new Rmrk((await rmrkFactory.new(
+      'default'.split(''),
+      'DFT'.split(''),
+      'uri'.split(''),
+      1000,
+      1,
+      'meta'.split(''),
+      deployer.address,
       1
     )).address, deployer, api);
   }
@@ -260,13 +275,22 @@ describe('Marketplace tests', () => {
     expect(result.value.unwrap().err.ownableError).to.equal('CallerIsNotOwner');
   });
 
-  it('factory works', async () => {
+  it('PSP34 factory works', async () => {
+    const shiden34Hash: Hash = shiden34.abi.info.source.wasmHash.toHex();
     await setup();
-    const marketplace_ipfs = 'ipfs://test';
-    const siden34Hash: Hash = shiden34.abi.info.source.wasmHash.toHex();
+    await callFactory(NftContractType.psp34, shiden34Hash);
+  });
 
-    const hashGas = (await marketplace.withSigner(deployer).query.setNftContractHash(siden34Hash)).gasRequired;
-    await marketplace.withSigner(deployer).tx.setNftContractHash(siden34Hash, { gasLimit: getEstimatedGas(hashGas) });
+  it('RMRK factory works', async () => {
+    const rmrkHash: Hash = rmrk.abi.info.source.wasmHash.toHex();
+    await setup();
+    await callFactory(NftContractType.rmrk, rmrkHash);
+  });
+
+  async function callFactory(contractType: NftContractType, contractHash: Hash) {
+    const marketplace_ipfs = 'ipfs://test';
+    const hashGas = (await marketplace.withSigner(deployer).query.setNftContractHash(contractHash)).gasRequired;
+    await marketplace.withSigner(deployer).tx.setNftContractHash(contractHash, { gasLimit: getEstimatedGas(hashGas) });
     
     const gas = (await marketplace.withSigner(deployer).query.factory(
       string2ascii(marketplace_ipfs),
@@ -277,7 +301,7 @@ describe('Marketplace tests', () => {
       string2ascii('nftUri'),
       1000,
       100,
-      NftContractType.psp34
+      contractType
     )).gasRequired;
     const factoryResult = await marketplace.withSigner(deployer).tx.factory(
       string2ascii(marketplace_ipfs),
@@ -288,7 +312,7 @@ describe('Marketplace tests', () => {
       string2ascii('nftUri'),
       1000,
       100,
-      NftContractType.psp34,
+      contractType,
       {gasLimit: getEstimatedGas(gas)});
     
     // Check if Shiden34 contract has been deployed
@@ -305,7 +329,7 @@ describe('Marketplace tests', () => {
     expect(registerCheckResult.royalty).to.be.equal(200);
     expect(registerCheckResult.royaltyReceiver).to.be.equal(bob.address);
     expect(registerCheckResult.marketplaceIpfs).to.be.equal(toHex(string2ascii(marketplace_ipfs)));
-  });
+  }
 
   // Helper function to mint a token.
   async function mintToken(signer: KeyringPair): Promise<void> {
