@@ -261,9 +261,14 @@ pub mod marketplace {
         fn set_nft_contract_hash_works() {
             let mut marketplace = init_contract();
             let hash = Hash::try_from([1; 32]).unwrap();
+            let hash2 = Hash::try_from([2; 32]).unwrap();
 
-            assert!(marketplace.set_nft_contract_hash(hash).is_ok());
-            assert_eq!(marketplace.nft_contract_hash(), hash);
+            assert!(marketplace.set_nft_contract_hash(NftContractType::Rmrk, hash).is_ok());
+            assert_eq!(marketplace.nft_contract_hash(NftContractType::Rmrk), hash);
+            
+            // Check also if owner is able to update hash.
+            assert!(marketplace.set_nft_contract_hash(NftContractType::Rmrk, hash2).is_ok());
+            assert_eq!(marketplace.nft_contract_hash(NftContractType::Rmrk), hash2);
         }
 
         #[ink::test]
@@ -274,7 +279,7 @@ pub mod marketplace {
             set_sender(accounts.bob);
 
             assert_eq!(
-                marketplace.set_nft_contract_hash(hash),
+                marketplace.set_nft_contract_hash(NftContractType::Rmrk, hash),
                 Err(MarketplaceError::OwnableError(
                     OwnableError::CallerIsNotOwner
                 ))

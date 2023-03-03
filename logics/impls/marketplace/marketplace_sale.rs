@@ -51,8 +51,8 @@ use openbrush::{
         String,
     },
 };
-use shiden34::shiden34::Shiden34ContractRef;
 use rmrk_equippable::rmrk_equippable::RmrkRef;
+use shiden34::shiden34::Shiden34ContractRef;
 
 pub trait Internal {
     /// Checks if contract caller is an token owner
@@ -88,6 +88,9 @@ pub trait Internal {
         author_royalty: Balance,
         token_price: Balance,
     ) -> Result<(), MarketplaceError>;
+
+    /// Get NFT contract hash needed for factory method
+    fn get_nft_contract_hash(&self, contract_type: &NftContractType) -> Result<Hash, MarketplaceError>;
 }
 
 pub trait MarketplaceSaleEvents {
@@ -113,10 +116,7 @@ where
         nft_price_per_mint: Balance,
         nft_contract_type: NftContractType,
     ) -> Result<AccountId, MarketplaceError> {
-        let contract_hash = self.data::<Data>().nft_contract_hash;
-        if contract_hash == Hash::default() {
-            return Err(MarketplaceError::NftContractHashNotSet)
-        }
+        let contract_hash = self.get_nft_contract_hash(&nft_contract_type)?;
 
         // Generate salt
         let nonce = self.data::<Data>().nonce.saturating_add(1);
@@ -141,7 +141,7 @@ where
                     _ => Err(MarketplaceError::PSP34InstantiationFailed),
                 }?;
                 nft.to_account_id()
-            },
+            }
             NftContractType::Rmrk => {
                 let nft = match RmrkRef::new(
                     nft_name,
@@ -151,7 +151,7 @@ where
                     nft_price_per_mint,
                     nft_base_uri,
                     royalty_receiver,
-                    (royalty / 100) as u8
+                    (royalty / 100) as u8,
                 )
                 .endowment(0)
                 .code_hash(contract_hash)
@@ -184,16 +184,18 @@ where
     #[modifiers(only_owner)]
     default fn set_nft_contract_hash(
         &mut self,
+        contract_type: NftContractType,
         contract_hash: Hash,
     ) -> Result<(), MarketplaceError> {
-        self.data::<Data>().nft_contract_hash = contract_hash;
-
+        self.data::<Data>()
+            .nft_contract_hash
+            .insert(&contract_type, &contract_hash);
         Ok(())
     }
 
-    /// Gets Shiden34 contract hash.
-    default fn nft_contract_hash(&self) -> Hash {
-        self.data::<Data>().nft_contract_hash
+    /// Gets a NFT contract hash.
+    default fn nft_contract_hash(&self, contract_type: NftContractType) -> Hash {
+        self.get_nft_contract_hash(&contract_type).unwrap()
     }
 
     /// Creates a NFT item sale on the marketplace.
@@ -486,7 +488,7 @@ where
             .is_some()
     }
 
-    fn transfer_token(
+    default fn transfer_token(
         &self,
         contract_address: AccountId,
         token_id: Id,
@@ -522,5 +524,12 @@ where
             }
             Err(_) => Err(MarketplaceError::UnableToTransferToken),
         }
+    }
+
+    default fn get_nft_contract_hash(&self, contract_type: &NftContractType) -> Result<Hash, MarketplaceError> {
+        self.data::<Data>()
+            .nft_contract_hash
+            .get(&contract_type)
+            .ok_or(MarketplaceError::NftContractHashNotSet)
     }
 }

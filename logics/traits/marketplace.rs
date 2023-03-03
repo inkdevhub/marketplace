@@ -32,11 +32,15 @@ pub trait MarketplaceSale {
 
     /// Sets a hash of a Shiden34 contract to be instantiated by factory call.
     #[ink(message)]
-    fn set_nft_contract_hash(&mut self, contract_hash: Hash) -> Result<(), MarketplaceError>;
+    fn set_nft_contract_hash(
+        &mut self,
+        contract_type: NftContractType,
+        contract_hash: Hash,
+    ) -> Result<(), MarketplaceError>;
 
-    /// Gets Shiden34 contract hash.
+    /// Gets a NFT contract hash.
     #[ink(message)]
-    fn nft_contract_hash(&self) -> Hash;
+    fn nft_contract_hash(&self, contract_type: NftContractType) -> Hash;
 
     /// Creates a NFT item sale on the marketplace.
     #[ink(message)]

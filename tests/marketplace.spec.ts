@@ -257,10 +257,10 @@ describe('Marketplace tests', () => {
     await registerContract(deployer);
     const hash = string2ascii('h'.repeat(32));
 
-    const gas = (await marketplace.withSigner(deployer).query.setNftContractHash(hash)).gasRequired;
-    await marketplace.withSigner(deployer).tx.setNftContractHash(hash, {gasLimit: getEstimatedGas(gas)});
+    const gas = (await marketplace.withSigner(deployer).query.setNftContractHash(NftContractType.psp34, hash)).gasRequired;
+    await marketplace.withSigner(deployer).tx.setNftContractHash(NftContractType.psp34, hash, {gasLimit: getEstimatedGas(gas)});
 
-    const hashValue = await marketplace.query.nftContractHash();
+    const hashValue = await marketplace.query.nftContractHash(NftContractType.psp34);
     expect(hashValue.value.unwrap()).to.be.equal(toHex(hash));
   });
 
@@ -269,8 +269,8 @@ describe('Marketplace tests', () => {
     await registerContract(deployer);
     const hash = string2ascii('h'.repeat(32));
 
-    const gas = (await marketplace.withSigner(bob).query.setNftContractHash(hash)).gasRequired;
-    const result = await marketplace.withSigner(bob).query.setNftContractHash(hash, {gasLimit: getEstimatedGas(gas)});
+    const gas = (await marketplace.withSigner(bob).query.setNftContractHash(NftContractType.rmrk, hash)).gasRequired;
+    const result = await marketplace.withSigner(bob).query.setNftContractHash(NftContractType.rmrk, hash, {gasLimit: getEstimatedGas(gas)});
 
     expect(result.value.unwrap().err.ownableError).to.equal('CallerIsNotOwner');
   });
@@ -289,8 +289,8 @@ describe('Marketplace tests', () => {
 
   async function callFactory(contractType: NftContractType, contractHash: Hash) {
     const marketplace_ipfs = 'ipfs://test';
-    const hashGas = (await marketplace.withSigner(deployer).query.setNftContractHash(contractHash)).gasRequired;
-    await marketplace.withSigner(deployer).tx.setNftContractHash(contractHash, { gasLimit: getEstimatedGas(hashGas) });
+    const hashGas = (await marketplace.withSigner(deployer).query.setNftContractHash(contractType, contractHash)).gasRequired;
+    await marketplace.withSigner(deployer).tx.setNftContractHash(contractType, contractHash, { gasLimit: getEstimatedGas(hashGas) });
     
     const gas = (await marketplace.withSigner(deployer).query.factory(
       string2ascii(marketplace_ipfs),
