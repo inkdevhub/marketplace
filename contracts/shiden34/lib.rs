@@ -3,11 +3,10 @@
 
 #[openbrush::contract]
 pub mod shiden34 {
-    use ink_lang::codegen::{
+    use ink::codegen::{
         EmitEvent,
         Env,
     };
-    use ink_storage::traits::SpreadAllocate;
     use openbrush::{
         contracts::{
             ownable::*,
@@ -30,7 +29,7 @@ pub mod shiden34 {
 
     // Shiden34Contract contract storage
     #[ink(storage)]
-    #[derive(Default, SpreadAllocate, Storage)]
+    #[derive(Default, Storage)]
     pub struct Shiden34Contract {
         #[storage_field]
         psp34: psp34::Data<enumerable::Balances>,
@@ -81,17 +80,17 @@ pub mod shiden34 {
             max_supply: u64,
             price_per_mint: Balance,
         ) -> Self {
-            ink_lang::codegen::initialize_contract(|instance: &mut Shiden34Contract| {
-                let collection_id = instance.collection_id();
-                instance._set_attribute(collection_id.clone(), String::from("name"), name);
-                instance._set_attribute(collection_id.clone(), String::from("symbol"), symbol);
-                instance._set_attribute(collection_id, String::from("baseUri"), base_uri);
-                instance.payable_mint.max_supply = max_supply;
-                instance.payable_mint.price_per_mint = price_per_mint;
-                instance.payable_mint.last_token_id = 0;
-                let caller = instance.env().caller();
-                instance._init_with_owner(caller);
-            })
+            let mut instance = Self::default();
+            instance._init_with_owner(instance.env().caller());
+            let collection_id = instance.collection_id();
+            instance._set_attribute(collection_id.clone(), String::from("name"), name);
+            instance._set_attribute(collection_id.clone(), String::from("symbol"), symbol);
+            instance._set_attribute(collection_id, String::from("baseUri"), base_uri);
+            instance.payable_mint.max_supply = max_supply;
+            instance.payable_mint.price_per_mint = price_per_mint;
+            instance.payable_mint.last_token_id = 0;
+            instance.payable_mint.max_amount = 1;
+            instance
         }
     }
 
@@ -124,12 +123,13 @@ pub mod shiden34 {
     mod tests {
         use super::*;
         use crate::shiden34::PSP34Error::*;
-        use ink_env::{
-            pay_with_call,
-            test,
+        use ink::{
+            env::{
+                pay_with_call,
+                test,
+            },
+            prelude::string::String as PreludeString,
         };
-        use ink_lang as ink;
-        use ink_prelude::string::String as PreludeString;
         use payable_mint_pkg::impls::payable_mint::{
             payable_mint::Internal,
             types::Shiden34Error,
@@ -176,7 +176,7 @@ pub mod shiden34 {
             set_sender(accounts.bob);
 
             assert_eq!(sh34.total_supply(), 0);
-            test::set_value_transferred::<ink_env::DefaultEnvironment>(PRICE);
+            test::set_value_transferred::<ink::env::DefaultEnvironment>(PRICE);
             assert!(sh34.mint_next().is_ok());
             assert_eq!(sh34.total_supply(), 1);
             assert_eq!(sh34.owner_of(Id::U64(1)), Some(accounts.bob));
@@ -184,7 +184,7 @@ pub mod shiden34 {
 
             assert_eq!(sh34.owners_token_by_index(accounts.bob, 0), Ok(Id::U64(1)));
             assert_eq!(sh34.payable_mint.last_token_id, 1);
-            assert_eq!(1, ink_env::test::recorded_events().count());
+            assert_eq!(1, ink::env::test::recorded_events().count());
         }
 
         #[ink::test]
@@ -203,7 +203,7 @@ pub mod shiden34 {
             );
 
             assert_eq!(sh34.total_supply(), 0);
-            test::set_value_transferred::<ink_env::DefaultEnvironment>(
+            test::set_value_transferred::<ink::env::DefaultEnvironment>(
                 PRICE * num_of_mints as u128,
             );
             assert!(sh34.mint(accounts.bob, num_of_mints).is_ok());
@@ -214,7 +214,7 @@ pub mod shiden34 {
             assert_eq!(sh34.owners_token_by_index(accounts.bob, 2), Ok(Id::U64(3)));
             assert_eq!(sh34.owners_token_by_index(accounts.bob, 3), Ok(Id::U64(4)));
             assert_eq!(sh34.owners_token_by_index(accounts.bob, 4), Ok(Id::U64(5)));
-            assert_eq!(5, ink_env::test::recorded_events().count());
+            assert_eq!(5, ink::env::test::recorded_events().count());
             assert_eq!(
                 sh34.owners_token_by_index(accounts.bob, 5),
                 Err(TokenNotExists)
@@ -229,7 +229,7 @@ pub mod shiden34 {
             let num_of_mints: u64 = MAX_SUPPLY + 1;
 
             assert_eq!(sh34.total_supply(), 0);
-            test::set_value_transferred::<ink_env::DefaultEnvironment>(
+            test::set_value_transferred::<ink::env::DefaultEnvironment>(
                 PRICE * num_of_mints as u128,
             );
             assert!(sh34.set_max_mint_amount(num_of_mints).is_ok());
@@ -247,14 +247,14 @@ pub mod shiden34 {
             let num_of_mints = 1;
 
             assert_eq!(sh34.total_supply(), 0);
-            test::set_value_transferred::<ink_env::DefaultEnvironment>(
+            test::set_value_transferred::<ink::env::DefaultEnvironment>(
                 PRICE * num_of_mints as u128 - 1,
             );
             assert_eq!(
                 sh34.mint(accounts.bob, num_of_mints),
                 Err(PSP34Error::Custom(Shiden34Error::BadMintValue.as_str()))
             );
-            test::set_value_transferred::<ink_env::DefaultEnvironment>(
+            test::set_value_transferred::<ink::env::DefaultEnvironment>(
                 PRICE * num_of_mints as u128 - 1,
             );
             assert_eq!(
@@ -292,7 +292,7 @@ pub mod shiden34 {
             let accounts = default_accounts();
             set_sender(accounts.alice);
 
-            test::set_value_transferred::<ink_env::DefaultEnvironment>(PRICE);
+            test::set_value_transferred::<ink::env::DefaultEnvironment>(PRICE);
             assert!(sh34.mint_next().is_ok());
             // return error if request is for not yet minted token
             assert_eq!(sh34.token_uri(42), Err(TokenNotExists));
@@ -387,16 +387,16 @@ pub mod shiden34 {
             );
         }
 
-        fn default_accounts() -> test::DefaultAccounts<ink_env::DefaultEnvironment> {
+        fn default_accounts() -> test::DefaultAccounts<ink::env::DefaultEnvironment> {
             test::default_accounts::<Environment>()
         }
 
         fn set_sender(sender: AccountId) {
-            ink_env::test::set_caller::<Environment>(sender);
+            ink::env::test::set_caller::<Environment>(sender);
         }
 
         fn set_balance(account_id: AccountId, balance: Balance) {
-            ink_env::test::set_account_balance::<ink_env::DefaultEnvironment>(account_id, balance)
+            ink::env::test::set_account_balance::<ink::env::DefaultEnvironment>(account_id, balance)
         }
     }
 }

@@ -3,15 +3,14 @@
 
 #[openbrush::contract]
 pub mod marketplace {
-    use ink_env::DefaultEnvironment;
-    use ink_lang::{
+    use ink::{
         codegen::{
             EmitEvent,
             Env,
         },
+        env::DefaultEnvironment,
         EnvAccess,
     };
-    use ink_storage::traits::SpreadAllocate;
     use openbrush::{
         contracts::{
             ownable::*,
@@ -30,7 +29,7 @@ pub mod marketplace {
 
     // MarketplaceContract contract storage
     #[ink(storage)]
-    #[derive(Default, SpreadAllocate, Storage)]
+    #[derive(Default, Storage)]
     pub struct MarketplaceContract {
         #[storage_field]
         ownable: ownable::Data,
@@ -51,7 +50,7 @@ pub mod marketplace {
         price: Option<Balance>,
     }
 
-    /// Event emited when a token is bought
+    /// Event emitted when a token is bought
     #[ink(event)]
     pub struct TokenBought {
         #[ink(topic)]
@@ -72,14 +71,14 @@ pub mod marketplace {
     impl MarketplaceContract {
         #[ink(constructor)]
         pub fn new(market_fee_recipient: AccountId) -> Self {
-            ink_lang::codegen::initialize_contract(|instance: &mut MarketplaceContract| {
-                instance.marketplace.fee = 100; // 1%
-                instance.marketplace.max_fee = 1000; // 10%
-                instance.marketplace.market_fee_recipient = market_fee_recipient;
+            let mut instance = Self::default();
+            instance.marketplace.fee = 100; // 1%
+            instance.marketplace.max_fee = 1000; // 10%
+            instance.marketplace.market_fee_recipient = Option::Some(market_fee_recipient);
 
-                let caller = instance.env().caller();
-                instance._init_with_owner(caller);
-            })
+            let caller = instance.env().caller();
+            instance._init_with_owner(caller);
+            instance
         }
     }
 
@@ -129,8 +128,7 @@ pub mod marketplace {
     mod tests {
         use super::*;
         use crate::marketplace::MarketplaceContract;
-        use ink_env::test;
-        use ink_lang as ink;
+        use ink::env::test;
         use openbrush::{
             contracts::psp34::Id,
             traits::String,
@@ -225,7 +223,7 @@ pub mod marketplace {
             assert_eq!(contract.royalty_receiver, fee_recipient());
             assert_eq!(contract.royalty, 999);
             assert_eq!(contract.marketplace_ipfs, ipfs);
-            assert_eq!(1, ink_env::test::recorded_events().count());
+            assert_eq!(1, ink::env::test::recorded_events().count());
         }
 
         #[ink::test]
@@ -304,12 +302,12 @@ pub mod marketplace {
             MarketplaceContract::new(fee_recipient())
         }
 
-        fn default_accounts() -> test::DefaultAccounts<ink_env::DefaultEnvironment> {
+        fn default_accounts() -> test::DefaultAccounts<ink::env::DefaultEnvironment> {
             test::default_accounts::<Environment>()
         }
 
         fn set_sender(sender: AccountId) {
-            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(sender);
+            ink::env::test::set_caller::<ink::env::DefaultEnvironment>(sender);
         }
 
         fn fee_recipient() -> AccountId {

@@ -2,12 +2,12 @@ use crate::impls::marketplace::types::{
     MarketplaceError,
     RegisteredCollection,
 };
-use ink_env::Hash;
 use openbrush::{
     contracts::psp34::Id,
     traits::{
         AccountId,
         Balance,
+        Hash,
         String,
     },
 };
