@@ -263,11 +263,15 @@ pub mod marketplace {
             let hash = Hash::try_from([1; 32]).unwrap();
             let hash2 = Hash::try_from([2; 32]).unwrap();
 
-            assert!(marketplace.set_nft_contract_hash(NftContractType::Rmrk, hash).is_ok());
+            assert!(marketplace
+                .set_nft_contract_hash(NftContractType::Rmrk, hash)
+                .is_ok());
             assert_eq!(marketplace.nft_contract_hash(NftContractType::Rmrk), hash);
-            
+
             // Check also if owner is able to update hash.
-            assert!(marketplace.set_nft_contract_hash(NftContractType::Rmrk, hash2).is_ok());
+            assert!(marketplace
+                .set_nft_contract_hash(NftContractType::Rmrk, hash2)
+                .is_ok());
             assert_eq!(marketplace.nft_contract_hash(NftContractType::Rmrk), hash2);
         }
 

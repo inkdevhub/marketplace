@@ -90,7 +90,10 @@ pub trait Internal {
     ) -> Result<(), MarketplaceError>;
 
     /// Get NFT contract hash needed for factory method
-    fn get_nft_contract_hash(&self, contract_type: &NftContractType) -> Result<Hash, MarketplaceError>;
+    fn get_nft_contract_hash(
+        &self,
+        contract_type: &NftContractType,
+    ) -> Result<Hash, MarketplaceError>;
 }
 
 pub trait MarketplaceSaleEvents {
@@ -526,7 +529,10 @@ where
         }
     }
 
-    default fn get_nft_contract_hash(&self, contract_type: &NftContractType) -> Result<Hash, MarketplaceError> {
+    default fn get_nft_contract_hash(
+        &self,
+        contract_type: &NftContractType,
+    ) -> Result<Hash, MarketplaceError> {
         self.data::<Data>()
             .nft_contract_hash
             .get(&contract_type)
