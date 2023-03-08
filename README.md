@@ -1,5 +1,5 @@
 # NFT Marketplace project
-This contract is an example for the NFT marketplace implementation.
+This contract is an example for the NFT marketplace implementation. The contract currently supports 2 token types [PSP34](https://github.com/swanky-dapps/nft) and [RMRK](https://github.com/rmrk-team/rmrk-ink)
 
 ### License
 Apache 2.0
@@ -29,30 +29,18 @@ cargo contract build
 ```sh
 cargo test
 ```
-##### 💫 Deploy
-First start your local node. Recommended [swanky-node](https://github.com/AstarNetwork/swanky-node) v1.0.0
-```sh
-cargo ??
-```
-- or deploy polkadot JS. Instructions on [Astar docs](https://docs.astar.network/docs/wasm/sc-dev/polkadotjs-ui)
 
 ##### 💫 Run integration test
-First start your local node. Recommended [swanky-node](https://github.com/AstarNetwork/swanky-node) v1.0.0
+First start your local node. Recommended the latest [swanky-node](https://github.com/AstarNetwork/swanky-node). After you download and unzip Swanky package for your OS, run it with
+```sh
+./swanky-node --dev --tmp -lruntime=trace -lruntime::contracts=debug -lerror
+```
+Navigate to Marketplace project root folder and run the following commands:
 
 ```sh
 yarn
 yarn compile
 yarn test
 ```
-
-##### 💫 Deployed contracts
-TBA
-
----
-## 🏗️ How to use - UI
-Image - GIF
-Link to UI - how to use
-##### Build local
-yarn ...
-##### links
-link to vercel deployed website
+##### 💫 Deploy
+To manually deploy the contract to local Swanky node or any other node that supports contracts pallet use [Contracts UI](https://contracts-ui.substrate.io/)

@@ -27,7 +27,7 @@ pub struct Data {
     pub fee: u16,
     pub max_fee: u16,
     pub market_fee_recipient: Option<AccountId>,
-    pub nft_contract_hash: Hash,
+    pub nft_contract_hash: Mapping<NftContractType, Hash>,
     pub nonce: u64,
 }
 
@@ -62,14 +62,21 @@ pub enum MarketplaceError {
     UnableToTransferToken,
     /// PSP23 contract hash was not set
     NftContractHashNotSet,
-    /// Factory method was unable to initiate PSP34 contract.
-    PSP34InstantiationFailed,
+    /// Factory method was unable to initiate NFT smart contract.
+    ContractInstantiationFailed,
     /// Buyer already owns token.
     AlreadyOwner,
     /// Token does not exist.
     TokenDoesNotExist,
     /// Marketplace item is already listed for sale.
     ItemAlreadyListedForSale,
+}
+
+#[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
+#[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+pub enum NftContractType {
+    Psp34,
+    Rmrk,
 }
 
 #[derive(Encode, Decode, Debug)]

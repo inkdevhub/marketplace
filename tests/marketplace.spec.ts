@@ -11,10 +11,12 @@ import TestPSP34_factory from '../types/constructors/test_psp34';
 import TestPSP34 from '../types/contracts/test_psp34';
 import Shiden34_Factory from '../types/constructors/shiden34';
 import Shiden34 from '../types/contracts/shiden34';
+import Rmrk_Factory from '../types/constructors/rmrk_equippable';
+import Rmrk from '../types/contracts/rmrk_equippable';
 import { ApiPromise, WsProvider, Keyring } from '@polkadot/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { ReturnNumber } from '@727-ventures/typechain-types';
-import { Hash } from 'types-arguments/marketplace';
+import { Hash, NftContractType } from '../types/types-arguments/marketplace';
 
 use(chaiAsPromised);
 
@@ -37,6 +39,7 @@ describe('Marketplace tests', () => {
   let marketplaceFactory: Market_factory;
   let psp34Factory: TestPSP34_factory;
   let shiden34Factory: Shiden34_Factory;
+  let rmrkFactory: Rmrk_Factory;
   let api: ApiPromise;
   let deployer: KeyringPair;
   let bob: KeyringPair;
@@ -44,6 +47,7 @@ describe('Marketplace tests', () => {
   let marketplace: Market;
   let psp34: TestPSP34;
   let shiden34: Shiden34;
+  let rmrk: Rmrk;
 
   const gasLimit = 18750000000;
   const ZERO_ADDRESS = encodeAddress(
@@ -59,6 +63,7 @@ describe('Marketplace tests', () => {
     marketplaceFactory = new Market_factory(api, deployer);
     psp34Factory = new TestPSP34_factory(api, deployer);
     shiden34Factory = new Shiden34_Factory(api, deployer);
+    rmrkFactory = new Rmrk_Factory(api, deployer);
     marketplace = new Market((await marketplaceFactory.new(deployer.address)).address, deployer, api);
     psp34 = new TestPSP34((await psp34Factory.new()).address, deployer, api);
     shiden34 = new Shiden34((await shiden34Factory.new(
@@ -66,6 +71,16 @@ describe('Marketplace tests', () => {
       'DFT'.split(''),
       'uri'.split(''),
       1000,
+      1
+    )).address, deployer, api);
+    rmrk = new Rmrk((await rmrkFactory.new(
+      'default'.split(''),
+      'DFT'.split(''),
+      'uri'.split(''),
+      1000,
+      1,
+      'meta'.split(''),
+      deployer.address,
       1
     )).address, deployer, api);
   }
@@ -215,6 +230,52 @@ describe('Marketplace tests', () => {
     expect(reBuyResult.value.unwrap().err.hasOwnProperty('alreadyOwner')).to.be.true;
   });
 
+  it('buy RMRK works', async () => {
+    await setup();
+    await mintRmrkToken(charlie);
+    await registerRmrkContract(deployer);
+    await listRmrkToken(charlie);
+
+    // Charlie approves marketplace to be operator of the token
+    const approveGas = (await rmrk.withSigner(charlie).query.approve(marketplace.address, { u64: 1 }, true)).gasRequired;
+    let approveResult = await rmrk.withSigner(charlie).tx.approve(marketplace.address, { u64: 1 }, true, { gasLimit: getEstimatedGas(approveGas) });
+
+    const deployerOriginalBalance = await getBalance(deployer);
+    const bobOriginalBalance = await getBalance(bob);
+    const charlieOriginalBalance = await getBalance(charlie);
+
+    // Buy token
+    const { gasRequired, value } = await marketplace.withSigner(bob).query.buy(rmrk.address, {u64: 1}, { value: new BN('100000000000000000000') });
+    const buyResult = await marketplace.withSigner(bob).tx.buy(
+      rmrk.address, 
+      {u64: 1},
+      { gasLimit: getEstimatedGas(gasRequired), value: new BN('100000000000000000000') });
+
+    expect(buyResult.result?.isFinalized).to.be.true;
+    checkIfEventIsEmitted(buyResult, 'TokenBought', { contract: rmrk.address, id: {u64: 1}, price: BigInt('100000000000000000000') });
+
+    // Balances check.
+    const deployerBalance = await getBalance(deployer);
+    const bobBalance = await getBalance(bob);
+    const charlieBalance = await getBalance(charlie);
+    
+    // Check the marketplace fee receiver balance. ATM all royalties go to deployer.
+    expect(deployerBalance.eq(deployerOriginalBalance.add(new BN('2000000000000000000')))).to.be.true;
+    // Check seller's balance. Should be increased by price - fees
+    expect(charlieBalance.toString()).to.be.equal(charlieOriginalBalance.add(new BN('98000000000000000000')).toString());
+    // Check the token owner.
+    expect((await rmrk.query.ownerOf({ u64: 1 })).value.unwrap()).to.equal(bob.address);
+    // Check if allowance is unset.
+    expect((await rmrk.query.allowance(charlie.address, marketplace.address, { u64: 1 })).value.ok).to.equal(false);
+
+    // Try to buy the same token again
+    const reBuyResult = await marketplace.withSigner(bob).query.buy(
+      rmrk.address, 
+      {u64: 1},
+      { gasLimit: getEstimatedGas(gasRequired), value: new BN('100000000000000000000') });
+    expect(reBuyResult.value.unwrap().err.hasOwnProperty('alreadyOwner')).to.be.true;
+  });
+
   it('setContractMetadata works', async () => {
     await setup();
     await registerContract(deployer);
@@ -242,10 +303,10 @@ describe('Marketplace tests', () => {
     await registerContract(deployer);
     const hash = string2ascii('h'.repeat(32));
 
-    const gas = (await marketplace.withSigner(deployer).query.setNftContractHash(hash)).gasRequired;
-    await marketplace.withSigner(deployer).tx.setNftContractHash(hash, {gasLimit: getEstimatedGas(gas)});
+    const gas = (await marketplace.withSigner(deployer).query.setNftContractHash(NftContractType.psp34, hash)).gasRequired;
+    await marketplace.withSigner(deployer).tx.setNftContractHash(NftContractType.psp34, hash, {gasLimit: getEstimatedGas(gas)});
 
-    const hashValue = await marketplace.query.nftContractHash();
+    const hashValue = await marketplace.query.nftContractHash(NftContractType.psp34);
     expect(hashValue.value.unwrap()).to.be.equal(toHex(hash));
   });
 
@@ -254,19 +315,28 @@ describe('Marketplace tests', () => {
     await registerContract(deployer);
     const hash = string2ascii('h'.repeat(32));
 
-    const gas = (await marketplace.withSigner(bob).query.setNftContractHash(hash)).gasRequired;
-    const result = await marketplace.withSigner(bob).query.setNftContractHash(hash, {gasLimit: getEstimatedGas(gas)});
+    const gas = (await marketplace.withSigner(bob).query.setNftContractHash(NftContractType.rmrk, hash)).gasRequired;
+    const result = await marketplace.withSigner(bob).query.setNftContractHash(NftContractType.rmrk, hash, {gasLimit: getEstimatedGas(gas)});
 
     expect(result.value.unwrap().err.ownableError).to.equal('CallerIsNotOwner');
   });
 
-  it('factory works', async () => {
+  it('PSP34 factory works', async () => {
+    const shiden34Hash: Hash = shiden34.abi.info.source.wasmHash.toHex();
     await setup();
-    const marketplace_ipfs = 'ipfs://test';
-    const siden34Hash: Hash = shiden34.abi.info.source.wasmHash.toHex();
+    await callFactory(NftContractType.psp34, shiden34Hash);
+  });
 
-    const hashGas = (await marketplace.withSigner(deployer).query.setNftContractHash(siden34Hash)).gasRequired;
-    await marketplace.withSigner(deployer).tx.setNftContractHash(siden34Hash, { gasLimit: getEstimatedGas(hashGas) });
+  it('RMRK factory works', async () => {
+    const rmrkHash: Hash = rmrk.abi.info.source.wasmHash.toHex();
+    await setup();
+    await callFactory(NftContractType.rmrk, rmrkHash);
+  });
+
+  async function callFactory(contractType: NftContractType, contractHash: Hash) {
+    const marketplace_ipfs = 'ipfs://test';
+    const hashGas = (await marketplace.withSigner(deployer).query.setNftContractHash(contractType, contractHash)).gasRequired;
+    await marketplace.withSigner(deployer).tx.setNftContractHash(contractType, contractHash, { gasLimit: getEstimatedGas(hashGas) });
     
     const gas = (await marketplace.withSigner(deployer).query.factory(
       string2ascii(marketplace_ipfs),
@@ -276,7 +346,8 @@ describe('Marketplace tests', () => {
       string2ascii('TST'),
       string2ascii('nftUri'),
       1000,
-      100
+      100,
+      contractType
     )).gasRequired;
     const factoryResult = await marketplace.withSigner(deployer).tx.factory(
       string2ascii(marketplace_ipfs),
@@ -287,13 +358,14 @@ describe('Marketplace tests', () => {
       string2ascii('nftUri'),
       1000,
       100,
+      contractType,
       {gasLimit: getEstimatedGas(gas)});
     
     // Check if Shiden34 contract has been deployed
-    const instatiatedEvent = factoryResult.result.events.find(x => x.event.method === 'Instantiated' && x.event.section === 'contracts');
-    expect(instatiatedEvent).is.not.empty;
+    const instantiatedEvent = factoryResult.result.events.find(x => x.event.method === 'Instantiated' && x.event.section === 'contracts');
+    expect(instantiatedEvent).is.not.empty;
     
-    const shiden34Address = instatiatedEvent.event.data['contract'].toHuman();
+    const shiden34Address = instantiatedEvent.event.data['contract'].toHuman();
     expect(shiden34Address).is.not.empty;
     checkIfEventIsEmitted(factoryResult, 'CollectionRegistered', { contract: shiden34Address });
 
@@ -303,7 +375,7 @@ describe('Marketplace tests', () => {
     expect(registerCheckResult.royalty).to.be.equal(200);
     expect(registerCheckResult.royaltyReceiver).to.be.equal(bob.address);
     expect(registerCheckResult.marketplaceIpfs).to.be.equal(toHex(string2ascii(marketplace_ipfs)));
-  });
+  }
 
   // Helper function to mint a token.
   async function mintToken(signer: KeyringPair): Promise<void> {
@@ -312,6 +384,17 @@ describe('Marketplace tests', () => {
     expect(mintResult.result?.isFinalized).to.be.true;
     expect((await psp34.query.ownerOf({ u64: 1 })).value.unwrap()).to.equal(signer.address);
   }
+
+  // Helper function to mint a RMRK token.
+  async function mintRmrkToken(signer: KeyringPair): Promise<void> {
+    const { gasRequired } = await rmrk.withSigner(signer).query.mint({
+      value: BigInt(1)
+    });
+    const mintResult = await rmrk.withSigner(signer).tx.mint({ gasLimit: getEstimatedGas(gasRequired), value: BigInt(1) });
+    expect(mintResult.result?.isFinalized).to.be.true;
+    expect((await rmrk.query.ownerOf({ u64: 1 })).value.unwrap()).to.equal(signer.address);
+  }
+
 
   // Helper function to register contract.
   async function registerContract(signer:KeyringPair) {
@@ -322,12 +405,29 @@ describe('Marketplace tests', () => {
     checkIfEventIsEmitted(registerResult, 'CollectionRegistered', { contract: psp34.address });
   }
 
+    // Helper function to register RMRK contract.
+    async function registerRmrkContract(signer:KeyringPair) {
+      const ipfs = string2ascii('ipfs');
+      const { gasRequired } = await marketplace.withSigner(signer).query.register(rmrk.address, signer.address, 100, ipfs);
+      const registerResult = await marketplace.withSigner(signer).tx.register(rmrk.address, signer.address, 100, ipfs, { gasLimit: getEstimatedGas(gasRequired) });
+      expect(registerResult.result?.isFinalized).to.be.true;
+      checkIfEventIsEmitted(registerResult, 'CollectionRegistered', { contract: rmrk.address });
+    }
+
   // Helper function to list token for sale.
   async function listToken(signer:KeyringPair) {
     const { gasRequired } = await marketplace.withSigner(signer).query.list(psp34.address, {u64: 1}, 100);
     const listResult = await marketplace.withSigner(signer).tx.list(psp34.address, {u64: 1}, 100, { gasLimit: getEstimatedGas(gasRequired) });
     expect(listResult.result?.isFinalized).to.be.true;
     checkIfEventIsEmitted(listResult, 'TokenListed', { contract: psp34.address, id: {u64: 1}, price: 100 });
+  }
+
+  // Helper function to list RMRK token for sale.
+  async function listRmrkToken(signer:KeyringPair) {
+    const { gasRequired } = await marketplace.withSigner(signer).query.list(rmrk.address, {u64: 1}, 100);
+    const listResult = await marketplace.withSigner(signer).tx.list(rmrk.address, {u64: 1}, 100, { gasLimit: getEstimatedGas(gasRequired) });
+    expect(listResult.result?.isFinalized).to.be.true;
+    checkIfEventIsEmitted(listResult, 'TokenListed', { contract: rmrk.address, id: {u64: 1}, price: 100 });
   }
 
   // Helper function to get account balance
