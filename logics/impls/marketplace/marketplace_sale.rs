@@ -141,7 +141,7 @@ where
                 .try_instantiate()
                 {
                     Ok(Ok(res)) => Ok(res),
-                    _ => Err(MarketplaceError::PSP34InstantiationFailed),
+                    _ => Err(MarketplaceError::ContractInstantiationFailed),
                 }?;
                 nft.to_account_id()
             }
@@ -162,7 +162,7 @@ where
                 .try_instantiate()
                 {
                     Ok(Ok(res)) => Ok(res),
-                    _ => Err(MarketplaceError::PSP34InstantiationFailed),
+                    _ => Err(MarketplaceError::ContractInstantiationFailed),
                 }?;
                 nft.to_account_id()
             }

@@ -62,8 +62,8 @@ pub enum MarketplaceError {
     UnableToTransferToken,
     /// PSP23 contract hash was not set
     NftContractHashNotSet,
-    /// Factory method was unable to initiate PSP34 contract.
-    PSP34InstantiationFailed,
+    /// Factory method was unable to initiate NFT smart contract.
+    ContractInstantiationFailed,
     /// Buyer already owns token.
     AlreadyOwner,
     /// Token does not exist.
