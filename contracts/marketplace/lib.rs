@@ -331,4 +331,65 @@ pub mod marketplace {
             AccountId::from([0x2; 32])
         }
     }
+
+    #[cfg(all(test, feature = "e2e-tests"))]
+    mod e2e_tests {
+        use super::*;
+        use ink_e2e::build_message;
+
+        type E2EResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+        #[ink_e2e::test]
+        async fn it_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            // given
+            let constructor = marketplaceRef::new(false);
+            let contract_acc_id = client
+                .instantiate("marketplace", &ink_e2e::alice(), constructor, 0, None)
+                .await
+                .expect("instantiate failed")
+                .account_id;
+
+            let get = build_message::<marketplaceRef>(contract_acc_id.clone())
+                .call(|marketplace| marketplace.get());
+            let get_res = client.call_dry_run(&ink_e2e::bob(), &get, 0, None).await;
+            assert!(matches!(get_res.return_value(), false));
+
+            // when
+            let flip = build_message::<marketplaceRef>(contract_acc_id.clone())
+                .call(|marketplace| marketplace.flip());
+            let _flip_res = client
+                .call(&ink_e2e::bob(), flip, 0, None)
+                .await
+                .expect("flip failed");
+
+            // then
+            let get = build_message::<marketplaceRef>(contract_acc_id.clone())
+                .call(|marketplace| marketplace.get());
+            let get_res = client.call_dry_run(&ink_e2e::bob(), &get, 0, None).await;
+            assert!(matches!(get_res.return_value(), true));
+
+            Ok(())
+        }
+
+        #[ink_e2e::test]
+        async fn default_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            // given
+            let constructor = marketplaceRef::new_default();
+
+            // when
+            let contract_acc_id = client
+                .instantiate("marketplace", &ink_e2e::bob(), constructor, 0, None)
+                .await
+                .expect("instantiate failed")
+                .account_id;
+
+            // then
+            let get = build_message::<marketplaceRef>(contract_acc_id.clone())
+                .call(|marketplace| marketplace.get());
+            let get_res = client.call_dry_run(&ink_e2e::bob(), &get, 0, None).await;
+            assert!(matches!(get_res.return_value(), false));
+
+            Ok(())
+        }
+    }
 }
