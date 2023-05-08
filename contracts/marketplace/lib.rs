@@ -332,62 +332,102 @@ pub mod marketplace {
         }
     }
 
+    /// end-to-end (E2E) or integration tests for lottery.
+    ///
+    /// When running these you need to make sure that you:
+    /// - Compile the tests with the `e2e-tests` feature flag enabled (`--features e2e-tests`)
+    /// - Are running a Substrate node which contains `pallet-contracts` in the background
     #[cfg(all(test, feature = "e2e-tests"))]
     mod e2e_tests {
+        /// Imports all the definitions from the outer scope so we can use them here.
         use super::*;
+
+        /// A helper function used for calling contract messages.
         use ink_e2e::build_message;
 
+        /// The End-to-End test `Result` type.
         type E2EResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
+        /// We test that we can upload and instantiate the contract using its default constructor.
         #[ink_e2e::test]
-        async fn it_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
-            // given
-            let constructor = marketplaceRef::new(false);
-            let contract_acc_id = client
-                .instantiate("marketplace", &ink_e2e::alice(), constructor, 0, None)
+        async fn default_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            // Given
+            let constructor = LotteryRef::default();
+
+            // When
+            let contract_account_id = client
+                .instantiate("lottery", &ink_e2e::alice(), constructor, 0, None)
                 .await
                 .expect("instantiate failed")
                 .account_id;
 
-            let get = build_message::<marketplaceRef>(contract_acc_id.clone())
-                .call(|marketplace| marketplace.get());
-            let get_res = client.call_dry_run(&ink_e2e::bob(), &get, 0, None).await;
-            assert!(matches!(get_res.return_value(), false));
-
-            // when
-            let flip = build_message::<marketplaceRef>(contract_acc_id.clone())
-                .call(|marketplace| marketplace.flip());
-            let _flip_res = client
-                .call(&ink_e2e::bob(), flip, 0, None)
-                .await
-                .expect("flip failed");
-
-            // then
-            let get = build_message::<marketplaceRef>(contract_acc_id.clone())
-                .call(|marketplace| marketplace.get());
-            let get_res = client.call_dry_run(&ink_e2e::bob(), &get, 0, None).await;
-            assert!(matches!(get_res.return_value(), true));
+            // Then
+            let owner = build_message::<LotteryRef>(contract_account_id.clone())
+                .call(|lottery| lottery.owner());
+            let owner_result = client.call_dry_run(&ink_e2e::alice(), &owner, 0, None).await;
+            assert!(matches!(owner_result.return_value(), &ink_e2e::alice()));
 
             Ok(())
         }
 
+        /// We test that we can run lottery.
         #[ink_e2e::test]
-        async fn default_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
-            // given
-            let constructor = marketplaceRef::new_default();
-
-            // when
-            let contract_acc_id = client
-                .instantiate("marketplace", &ink_e2e::bob(), constructor, 0, None)
+        async fn it_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+            // Given
+            let constructor = LotteryRef::new(false);
+            let contract_account_id = client
+                .instantiate("lottery", &ink_e2e::bob(), constructor, 0, None)
                 .await
                 .expect("instantiate failed")
                 .account_id;
 
-            // then
-            let get = build_message::<marketplaceRef>(contract_acc_id.clone())
-                .call(|marketplace| marketplace.get());
-            let get_res = client.call_dry_run(&ink_e2e::bob(), &get, 0, None).await;
-            assert!(matches!(get_res.return_value(), false));
+            let owner = build_message::<LotteryRef>(contract_account_id.clone())
+                .call(|lottery| lottery.owner());
+            let owner_result = client.call_dry_run(&ink_e2e::bob(), &owner, 0, None).await;
+            assert!(matches!(get_result.return_value(), &ink_e2e::bob()));
+
+            // When
+            let start_lottery = build_message::<LotteryRef>(contract_account_id.clone())
+                .call(|lottery| lottery.start_lottery());
+            let _start_lottery_result = client
+                .call(&ink_e2e::bob(), start_lottery, 0, None)
+                .await
+                .expect("start_lottery failed");
+
+            // Then
+            let running = build_message::<LotteryRef>(contract_account_id.clone())
+                .call(|lottery| lottery.is_running());
+            let running_result = client.call_dry_run(&ink_e2e::bob(), &running, 0, None).await;
+            assert!(matches!(running_result.return_value(), true));
+
+            // When
+            let stop_lottery = build_message::<LotteryRef>(contract_account_id.clone())
+                .call(|lottery| lottery.stop_lottery());
+            let _stop_lottery_result = client
+                .call(&ink_e2e::bob(), stop_lottery, 0, None)
+                .await
+                .expect("start_lottery failed");
+
+            // Then
+            let running_after_stop = build_message::<LotteryRef>(contract_account_id.clone())
+                .call(|lottery| lottery.is_running());
+            let running_after_stop_result = client.call_dry_run(&ink_e2e::bob(), &running_after_stop, 0, None).await;
+            assert!(matches!(running_result.return_value(), false));
+
+
+            // When
+            let enter = build_message::<LotteryRef>(contract_account_id.clone())
+                .call(|lottery| lottery.enter());
+            let _enter_result = client
+                .call(&ink_e2e::bob(), enter, 1, None)
+                .await
+                .expect("start_lottery failed");
+
+            // Then
+            let pot = build_message::<LotteryRef>(contract_account_id.clone())
+                .call(|lottery| lottery.pot());
+            let pot_result = client.call_dry_run(&ink_e2e::bob(), &pot, 0, None).await;
+            assert!(matches!(pot_result.return_value(), 1));
 
             Ok(())
         }
