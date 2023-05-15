@@ -23,4 +23,4 @@ std = [
 
     "openbrush/std",
 ]
-ink-as-dependency = [] 
+ink-as-dependency = []
