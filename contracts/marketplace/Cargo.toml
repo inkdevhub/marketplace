@@ -11,6 +11,9 @@ scale-info = { version = "2.3", default-features = false, features = ["derive"],
 openbrush = { tag = "3.0.0", git = "https://github.com/727-Ventures/openbrush-contracts", default-features = false, features = ["ownable", "psp34", "reentrancy_guard"] }
 pallet_marketplace = { path = "../../logics", default-features = false }
 
+[dev-dependencies]
+ink_e2e = "4.0.1"
+
 [lib]
 path = "lib.rs"
 
@@ -24,6 +27,7 @@ std = [
     "pallet_marketplace/std",
 ]
 ink-as-dependency = []
+e2e-tests = []
 
 [profile.dev]
 overflow-checks = false
